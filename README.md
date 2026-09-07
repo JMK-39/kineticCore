@@ -15,7 +15,7 @@
 - **F6 统一配置中心**：集中展示已安装的 Kinetic 模块，支持模块级配置页、专用编辑器入口与搜索。
 - **服务端权威配置 API**：凡影响服务端规则的配置统一由服务端读取、校验、保存与同步；单人游戏也通过集成服务器走同一套保存路线。
 - **网络与压缩工具**：为大型 JSON、列表、NBT、规则快照等提供统一的网络编解码与压缩能力，供附属模块复用。
-- **公共 GUI / 选择器工具**：提供虚拟画布、配置页面、物品选择器、实体选择器、HUD 编辑器等通用客户端组件。
+- **公共 GUI / 选择器工具**：提供虚拟画布、配置页面、物品选择器、实体选择器、HUD 编辑器和高级 RGB 调色板 API 等通用客户端组件。
 - **命令扩展框架**：其他模块可以把自己的子命令挂载到统一的 `/kt` 命令树。
 - **飞行与穿墙控制**：提供飞行速度、惯性控制、穿墙状态与服务端同步等能力。
 - **主动爬行**：允许玩家通过按键主动进入 1 格高爬行状态。
@@ -80,7 +80,7 @@ config/kineticcore/
 - Unified `F6` configuration center for installed Kinetic modules.
 - Server-authoritative configuration API with permission checks and server-side persistence.
 - Shared networking and compressed payload utilities for large configuration data.
-- Reusable GUI, selector, virtual-canvas, and HUD editor APIs.
+- Reusable GUI, selector, virtual-canvas, HUD editor, and advanced RGB palette APIs.
 - `/kt` command extension framework for companion modules.
 - Flight, inertia and noclip control with client/server synchronization.
 - Manual crawling support.

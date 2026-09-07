@@ -7,6 +7,7 @@ import dev.xyat.kineticcore.api.client.GuiToastUtil;
 import dev.xyat.kineticcore.api.client.ItemListEditorScreen;
 import dev.xyat.kineticcore.api.client.PinyinUtil;
 import dev.xyat.kineticcore.api.client.ScaledScreen;
+import dev.xyat.kineticcore.api.client.color.ColorPickerApi;
 import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
 import dev.xyat.kineticcore.api.client.gui.GridScrollController;
 import dev.xyat.kineticcore.api.client.gui.NumericEditBox;
@@ -248,20 +249,37 @@ public final class KTConfigScreen extends ScaledScreen {
                 ).bounds(editorX, y, editorWidth, 20).build();
             }
             case COLOR -> {
-                EditBox box = new EditBox(font, editorX, y, editorWidth, 20, entry.label());
-                box.setMaxLength(9);
-                box.setValue(rawTextValues.getOrDefault(entry.id(),
-                        formatColor(((Number) pendingValues.get(entry.id())).intValue())));
-                box.setResponder(raw -> setParsedValue(entry.id(), parseColor(raw), box));
-                setParsedValue(entry.id(), parseColor(box.getValue()), box);
-                editor = box;
+                int currentColor = ((Number) pendingValues.get(entry.id())).intValue() & 0xFFFFFF;
+                editor = Button.builder(
+                                Component.literal(formatColor(currentColor)),
+                                ignored -> ColorPickerApi.openColorPicker(
+                                        this,
+                                        entry.label(),
+                                        currentColor,
+                                        selected -> {
+                                            pendingValues.put(entry.id(), selected & 0xFFFFFF);
+                                            rawTextValues.remove(entry.id());
+                                            invalidEntries.remove(entry.id());
+                                            status = null;
+                                            rebuildWidgets();
+                                        }
+                                )
+                        )
+                        .bounds(editorX, y, editorWidth, 20)
+                        .build();
             }
             default -> throw new IllegalStateException("Unsupported value type: " + entry.type());
         }
 
         boolean editable = KTConfigApi.canEdit(configPage);
         editor.active = editable;
-        if (entry.tooltip() != null && editable) {
+        if (entry.type() == KTConfigEntry.Type.COLOR && editable) {
+            editor.setTooltip(Tooltip.create(
+                    entry.tooltip() != null
+                            ? Component.translatable("gui.kineticcore.config.color_picker.tooltip").append(Component.literal(" ")).append(entry.tooltip())
+                            : Component.translatable("gui.kineticcore.config.color_picker.tooltip")
+            ));
+        } else if (entry.tooltip() != null && editable) {
             editor.setTooltip(Tooltip.create(entry.tooltip()));
         } else if (!editable) {
             editor.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
@@ -549,20 +567,6 @@ public final class KTConfigScreen extends ScaledScreen {
     private static String formatColor(int color) {
         return String.format(Locale.ROOT, "#%06X", color & 0xFFFFFF);
     }
-
-    private static Integer parseColor(String raw) {
-        if (raw == null) return null;
-        String value = raw.trim();
-        if (value.startsWith("#")) value = value.substring(1);
-        if (value.startsWith("0x") || value.startsWith("0X")) value = value.substring(2);
-        if (!value.matches("[0-9a-fA-F]{1,6}")) return null;
-        try {
-            return Integer.parseInt(value, 16);
-        } catch (NumberFormatException ignored) {
-            return null;
-        }
-    }
-
 
     @Override
     protected void renderScaledBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
