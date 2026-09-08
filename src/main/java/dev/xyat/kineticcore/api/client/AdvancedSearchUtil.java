@@ -12,7 +12,26 @@ public class AdvancedSearchUtil {
         if (text == null || text.isBlank()) {
             return false;
         }
-        return matchPrepared(normalizeForSearch(text), prepareQuery(query));
+
+        String preparedText = normalizeForSearch(text);
+        String[] tokens = prepareQuery(query);
+        if (tokens.length == 0) {
+            return true;
+        }
+
+        PinyinUtil.SearchData pinyin = null;
+        for (String token : tokens) {
+            if (preparedText.contains(token)) {
+                continue;
+            }
+            if (pinyin == null) {
+                pinyin = PinyinUtil.prepare(text);
+            }
+            if (!pinyin.matches(token)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static String normalizeForSearch(String input) {

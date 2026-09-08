@@ -85,17 +85,17 @@ public final class ItemListEditorScreen extends ScaledScreen {
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.items.list_editor.add"),
                         ignored -> openSelector())
-                .bounds(70, 316, 130, 20)
+                .bounds(158, 316, 96, 20)
                 .build());
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.config.back"),
                         ignored -> onClose())
-                .bounds(255, 316, 130, 20)
+                .bounds(272, 316, 96, 20)
                 .build());
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.hud_editor.save"),
                         ignored -> saveAndClose())
-                .bounds(440, 316, 130, 20)
+                .bounds(386, 316, 96, 20)
                 .build());
     }
 

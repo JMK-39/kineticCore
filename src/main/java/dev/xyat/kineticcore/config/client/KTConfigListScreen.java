@@ -61,30 +61,30 @@ final class KTConfigListScreen extends ScaledScreen {
             int y = LIST_Y + local * ROW_HEIGHT;
             EditBox box;
             if (integerList) {
-                box = NumericEditBox.integer(font, 82, y, 376, 20, title,
+                box = NumericEditBox.integer(font, 124, y, 300, 20, title,
                         true, Integer.MIN_VALUE, Integer.MAX_VALUE);
             } else {
-                box = new EditBox(font, 82, y, 376, 20, title);
+                box = new EditBox(font, 124, y, 300, 20, title);
                 box.setMaxLength(32767);
             }
             box.setValue(values.get(index));
             box.setResponder(value -> values.set(capturedIndex, value));
             addRenderableWidget(box);
             addRenderableWidget(Button.builder(Component.literal("↑"), ignored -> move(capturedIndex, -1))
-                    .bounds(466, y, 28, 20).build());
+                    .bounds(434, y, 28, 20).build());
             addRenderableWidget(Button.builder(Component.literal("↓"), ignored -> move(capturedIndex, 1))
-                    .bounds(500, y, 28, 20).build());
+                    .bounds(468, y, 28, 20).build());
             addRenderableWidget(Button.builder(Component.literal("×"), ignored -> remove(capturedIndex))
-                    .bounds(534, y, 34, 20).build());
+                    .bounds(502, y, 34, 20).build());
         }
 
         int footerY = 325;
         addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.config.add"), ignored -> add())
-                .bounds(136, footerY, 112, 20).build());
+                .bounds(166, footerY, 92, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.config.back"), ignored -> onClose())
-                .bounds(264, footerY, 112, 20).build());
+                .bounds(274, footerY, 92, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), ignored -> finish())
-                .bounds(392, footerY, 112, 20).build());
+                .bounds(382, footerY, 92, 20).build());
     }
 
     private void add() {

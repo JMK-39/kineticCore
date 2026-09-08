@@ -91,7 +91,7 @@ public final class EntitySelectorScreen extends ScaledScreen {
     @Override
     protected void initScaled() {
         searchBox = addRenderableWidget(new EditBox(
-                font, GRID_X, 38, GRID_W, 20,
+                font, GRID_X, 38, Math.min(GRID_W, 430), 20,
                 Component.translatable("gui.kineticcore.entity_selector.search_hint")
         ));
         searchBox.setMaxLength(256);
@@ -104,15 +104,15 @@ public final class EntitySelectorScreen extends ScaledScreen {
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.entity_selector.clear"),
                         ignored -> selectedIds.clear())
-                .bounds(116, 325, 122, 20).build());
+                .bounds(166, 325, 92, 20).build());
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.config.back"),
                         ignored -> onClose())
-                .bounds(258, 325, 122, 20).build());
+                .bounds(274, 325, 92, 20).build());
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.entity_selector.apply"),
                         ignored -> applyAndReturn())
-                .bounds(400, 325, 122, 20).build());
+                .bounds(382, 325, 92, 20).build());
 
         updateSearch(searchQuery);
     }

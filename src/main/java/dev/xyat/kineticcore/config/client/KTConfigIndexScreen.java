@@ -91,7 +91,7 @@ public final class KTConfigIndexScreen extends ScaledScreen {
                 font,
                 LIST_X,
                 48,
-                LIST_WIDTH + 12,
+                430,
                 20,
                 Component.translatable("gui.kineticcore.config.search_plugins")
         );

@@ -8,6 +8,7 @@ import dev.xyat.kineticcore.api.client.ItemListEditorScreen;
 import dev.xyat.kineticcore.api.client.PinyinUtil;
 import dev.xyat.kineticcore.api.client.ScaledScreen;
 import dev.xyat.kineticcore.api.client.color.ColorPickerApi;
+import dev.xyat.kineticcore.api.client.gui.ColorPreviewButton;
 import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
 import dev.xyat.kineticcore.api.client.gui.GridScrollController;
 import dev.xyat.kineticcore.api.client.gui.NumericEditBox;
@@ -116,7 +117,7 @@ public final class KTConfigScreen extends ScaledScreen {
         entryScroll.update(entryModel.items().size(), VISIBLE_ROWS);
 
         searchBox = new EditBox(
-                font, 38, 37, 574, 18,
+                font, 38, 37, 430, 18,
                 Component.translatable("gui.kineticcore.config.search_fields")
         );
         searchBox.setMaxLength(256);
@@ -146,26 +147,38 @@ public final class KTConfigScreen extends ScaledScreen {
         int footerY = 325;
         boolean editable = KTConfigApi.canEdit(configPage);
         Button resetAllButton = Button.builder(Component.translatable("gui.kineticcore.config.reset_all"), ignored -> resetAll())
-                .bounds(116, footerY, 122, 20).build();
+                .bounds(166, footerY, 92, 20).build();
         resetAllButton.active = editable;
         if (!editable) resetAllButton.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
         addRenderableWidget(resetAllButton);
 
         addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.config.back"), ignored -> onClose())
-                .bounds(258, footerY, 122, 20).build());
+                .bounds(274, footerY, 92, 20).build());
 
         Button saveButton = Button.builder(Component.translatable("gui.kineticcore.config.save"), ignored -> saveAndClose())
-                .bounds(400, footerY, 122, 20).build();
+                .bounds(382, footerY, 92, 20).build();
         saveButton.active = editable;
         if (!editable) saveButton.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
         addRenderableWidget(saveButton);
     }
 
+    private static int compactEditorWidth(KTConfigEntry.Type type) {
+        return switch (type) {
+            case BOOLEAN -> 88;
+            case INTEGER, LONG, DOUBLE -> 104;
+            case STRING -> 176;
+            case CHOICE -> 132;
+            case STRING_LIST, ITEM_LIST, ITEM_RULE_LIST, ENTITY_LIST, INTEGER_LIST -> 120;
+            case COLOR -> 104;
+            default -> 132;
+        };
+    }
+
     private void addValueWidgets(KTConfigEntry<?> entry, int y) {
-        final int editorX = 330;
-        final int editorWidth = 210;
-        final int resetX = 548;
-        final int resetWidth = 64;
+        final int resetX = 554;
+        final int resetWidth = 58;
+        final int editorWidth = compactEditorWidth(entry.type());
+        final int editorX = resetX - 8 - editorWidth;
         AbstractWidget editor;
 
         switch (entry.type()) {
@@ -250,23 +263,26 @@ public final class KTConfigScreen extends ScaledScreen {
             }
             case COLOR -> {
                 int currentColor = ((Number) pendingValues.get(entry.id())).intValue() & 0xFFFFFF;
-                editor = Button.builder(
-                                Component.literal(formatColor(currentColor)),
-                                ignored -> ColorPickerApi.openColorPicker(
-                                        this,
-                                        entry.label(),
-                                        currentColor,
-                                        selected -> {
-                                            pendingValues.put(entry.id(), selected & 0xFFFFFF);
-                                            rawTextValues.remove(entry.id());
-                                            invalidEntries.remove(entry.id());
-                                            status = null;
-                                            rebuildWidgets();
-                                        }
-                                )
+                editor = new ColorPreviewButton(
+                        editorX,
+                        y,
+                        editorWidth,
+                        20,
+                        currentColor,
+                        Component.literal(formatColor(currentColor)),
+                        ignored -> ColorPickerApi.openColorPicker(
+                                this,
+                                entry.label(),
+                                currentColor,
+                                selected -> {
+                                    pendingValues.put(entry.id(), selected & 0xFFFFFF);
+                                    rawTextValues.remove(entry.id());
+                                    invalidEntries.remove(entry.id());
+                                    status = null;
+                                    rebuildWidgets();
+                                }
                         )
-                        .bounds(editorX, y, editorWidth, 20)
-                        .build();
+                );
             }
             default -> throw new IllegalStateException("Unsupported value type: " + entry.type());
         }
@@ -305,7 +321,7 @@ public final class KTConfigScreen extends ScaledScreen {
         Button button = Button.builder(
                         Component.translatable("gui.kineticcore.config.open"),
                         ignored -> requestAction(entry))
-                .bounds(330, y, 282, 20).build();
+                .bounds(480, y, 132, 20).build();
         boolean editable = KTConfigApi.canEdit(configPage);
         button.active = editable;
         if (entry.tooltip() != null && editable) {
