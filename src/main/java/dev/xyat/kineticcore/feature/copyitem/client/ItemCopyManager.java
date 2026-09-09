@@ -2,7 +2,7 @@ package dev.xyat.kineticcore.feature.copyitem.client;
 
 import net.minecraft.ChatFormatting;
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import dev.xyat.kineticcore.feature.copyitem.compat.jei.ItemCopyJeiPlugin;
 import dev.xyat.kineticcore.feature.copyitem.mixin.client.AbstractContainerScreenAccessor;
 import net.minecraft.Util;
@@ -77,7 +77,7 @@ public class ItemCopyManager {
 
             if (mc.player != null) {
                 ItemDetailPrinter.showItemInfo(mc.player, stack);
-                GuiToastUtil.showToast(Component.translatable("msg.kineticcore.copyitem.copy.chat_output.success"));
+                GuiOverlay.toast(Component.translatable("msg.kineticcore.copyitem.copy.chat_output.success"));
                 event.setCanceled(true);
             }
         }
@@ -172,6 +172,6 @@ public class ItemCopyManager {
         }
 
         mc.keyboardHandler.setClipboard(result);
-        GuiToastUtil.showToast(Component.translatable("msg.kineticcore.copyitem.copy.item_id.success", Component.literal(result).withStyle(ChatFormatting.AQUA)));
+        GuiOverlay.toast(Component.translatable("msg.kineticcore.copyitem.copy.item_id.success", Component.literal(result).withStyle(ChatFormatting.AQUA)));
     }
 }

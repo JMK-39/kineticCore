@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.config.client;
 
 import dev.xyat.kineticcore.KineticCore;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import dev.xyat.kineticcore.config.server.KTServerConfigNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -87,7 +87,7 @@ public final class KTServerConfigClient {
             return true;
         } catch (Throwable throwable) {
             KineticCore.LOGGER.error("Failed to send server config page {}", page.id(), throwable);
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     "kineticcore_server_config_save_failed",
                     Component.translatable("gui.kineticcore.config.server.save_failed")
             );
@@ -173,7 +173,7 @@ public final class KTServerConfigClient {
                             ? (success ? "gui.kineticcore.config.server.saved" : "gui.kineticcore.config.server.save_failed")
                             : messageKey
             );
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     success ? "kineticcore_server_config_saved" : "kineticcore_server_config_save_failed",
                     message
             );

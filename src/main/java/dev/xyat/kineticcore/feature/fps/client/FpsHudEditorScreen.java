@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.feature.fps.client;
 
 import net.minecraft.ChatFormatting;
-import dev.xyat.kineticcore.api.client.HudPositionEditor;
+import dev.xyat.kineticcore.api.client.selector.HudPositionEditor;
 import dev.xyat.kineticcore.config.client.KTConfigScreen;
 import dev.xyat.kineticcore.feature.fps.config.FpsClientConfig;
 import net.minecraft.client.Minecraft;

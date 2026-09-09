@@ -4,10 +4,10 @@ import net.minecraft.ChatFormatting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.gui.AutoCompleteBox;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.AutoCompleteBox;
 import dev.xyat.kineticcore.feature.setspawn.network.SetSpawnNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class SetSpawnScreen extends ScaledScreen {
+public class SetSpawnScreen extends KineticScreen {
     private static final Map<String, String> ZH_CN_CACHE = new ConcurrentHashMap<>();
     private static final Set<String> ZH_CN_LOADED_NAMESPACES = ConcurrentHashMap.newKeySet();
 
@@ -58,7 +58,7 @@ public class SetSpawnScreen extends ScaledScreen {
 
     public SetSpawnScreen(SetSpawnNetwork.OpenSetSpawnGuiPacket packet) {
         super(Component.translatable("gui.kineticcore.setspawn.title"));
-        configureResponsiveCanvas(
+        useCanvas(
                 640f,
                 360f,
                 6
@@ -83,8 +83,8 @@ public class SetSpawnScreen extends ScaledScreen {
     }
 
     @Override
-    protected void initScaled() {
-        int panelW = this.vWidth - 40;
+    protected void buildUi() {
+        int panelW = this.canvasWidth - 40;
         int startX = 20;
         int topY = 16;
 
@@ -109,9 +109,7 @@ public class SetSpawnScreen extends ScaledScreen {
         btnStruct.active = currentTab != 2;
         this.addRenderableWidget(btnStruct);
 
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.hud_editor.save"), b -> {
-            SetSpawnNetwork.CHANNEL.sendToServer(new SetSpawnNetwork.SaveSetSpawnPacket(globalEnable, dimEnable, dims, biomeEnable, biomes, structEnable, structs));
-        }).bounds(startX + panelW - 145, topY, 80, 20).build());
+        this.addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.hud_editor.save"), b -> SetSpawnNetwork.CHANNEL.sendToServer(new SetSpawnNetwork.SaveSetSpawnPacket(globalEnable, dimEnable, dims, biomeEnable, biomes, structEnable, structs))).bounds(startX + panelW - 145, topY, 80, 20).build());
 
         this.addRenderableWidget(Button.builder(Component.translatable("gui.kineticcore.config.back"), b -> this.onClose())
                 .bounds(startX + panelW - 60, topY, 60, 20).build());
@@ -161,7 +159,7 @@ public class SetSpawnScreen extends ScaledScreen {
         this.addRenderableWidget(envBtn);
 
         int listY = 76;
-        int listH = this.vHeight - listY - 16;
+        int listH = this.canvasHeight - listY - 16;
         List<String> activeData = currentTab == 0 ? dims : (currentTab == 1 ? biomes : structs);
 
         activeListWidget = new StringListWidget(this.minecraft, panelW, listH, listY, listY + listH, 20, activeData);
@@ -171,10 +169,10 @@ public class SetSpawnScreen extends ScaledScreen {
 
     public void handleSaveResult(boolean success) {
         if (success) {
-            GuiToastUtil.showToast(Component.translatable("gui.kineticcore.setspawn.saved_toast"));
+            GuiOverlay.toast(Component.translatable("gui.kineticcore.setspawn.saved_toast"));
             this.onClose();
         } else {
-            GuiToastUtil.showToast(Component.translatable("gui.kineticcore.setspawn.save_invalid_toast"));
+            GuiOverlay.toast(Component.translatable("gui.kineticcore.setspawn.save_invalid_toast"));
         }
     }
 
@@ -365,26 +363,26 @@ public class SetSpawnScreen extends ScaledScreen {
     }
 
     @Override
-    protected void renderScaledBackground(@NotNull GuiGraphics g, int mx, int my, float pt) {
-        GuiRenderUtil.drawShadowOverlay(g, this.vWidth, this.vHeight);
+    protected void renderCanvasBackground(@NotNull GuiGraphics g, int mx, int my, float pt) {
+        GuiTheme.shadow(g, this.canvasWidth, this.canvasHeight);
 
-        int panelW = this.vWidth - 40;
+        int panelW = this.canvasWidth - 40;
         int startX = 20;
         int listY = 76;
-        int listH = this.vHeight - listY - 16;
+        int listH = this.canvasHeight - listY - 16;
 
-        GuiRenderUtil.drawStandardPanel(g, 10, 8, this.vWidth - 20, this.vHeight - 16);
+        GuiTheme.panel(g, 10, 8, this.canvasWidth - 20, this.canvasHeight - 16);
 
-        g.fill(16, 40, this.vWidth - 16, 41, 0xFF444444);
-        g.fill(16, 71, this.vWidth - 16, 72, 0xFF444444);
+        g.fill(16, 40, this.canvasWidth - 16, 41, 0xFF444444);
+        g.fill(16, 71, this.canvasWidth - 16, 72, 0xFF444444);
 
-        GuiRenderUtil.drawDarkPanel(g, startX - 2, listY - 2, panelW + 4, listH + 4);
+        GuiTheme.panelAlt(g, startX - 2, listY - 2, panelW + 4, listH + 4);
 
-        renderScissorCorrectedList(activeListWidget, g, mx, my, pt);
+        renderScaledList(activeListWidget, g, mx, my, pt);
     }
 
     @Override
-    protected void renderScaledForeground(@NotNull GuiGraphics g, int mx, int my, float pt) {
+    protected void renderCanvasForeground(@NotNull GuiGraphics g, int mx, int my, float pt) {
         activeInput.renderSuggestions(g, mx, my);
     }
 
@@ -402,7 +400,7 @@ public class SetSpawnScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseClicked(double mx, double my, int btn) {
+    protected boolean canvasMouseClicked(double mx, double my, int btn) {
         if (activeInput != null) {
             if (!activeInput.isMouseOver(mx, my)) {
                 activeInput.setFocused(false);
@@ -412,25 +410,25 @@ public class SetSpawnScreen extends ScaledScreen {
             }
             if (activeInput.handleMouseClick(mx, my)) return true;
         }
-        return super.universalMouseClicked(mx, my, btn);
+        return super.canvasMouseClicked(mx, my, btn);
     }
 
     @Override
-    protected boolean universalMouseReleased(double mx, double my, int btn) {
+    protected boolean canvasMouseReleased(double mx, double my, int btn) {
         if (activeInput != null && activeInput.handleMouseReleased(btn)) return true;
-        return super.universalMouseReleased(mx, my, btn);
+        return super.canvasMouseReleased(mx, my, btn);
     }
 
     @Override
-    protected boolean universalMouseDragged(double mx, double my, int btn, double dx, double dy) {
+    protected boolean canvasMouseDragged(double mx, double my, int btn, double dx, double dy) {
         if (activeInput != null && activeInput.handleMouseDragged(my)) return true;
-        return super.universalMouseDragged(mx, my, btn, dx, dy);
+        return super.canvasMouseDragged(mx, my, btn, dx, dy);
     }
 
     @Override
-    protected boolean universalMouseScrolled(double mx, double my, double d) {
+    protected boolean canvasMouseScrolled(double mx, double my, double d) {
         if (activeInput != null && activeInput.handleMouseScrolled(d)) return true;
-        return super.universalMouseScrolled(mx, my, d);
+        return super.canvasMouseScrolled(mx, my, d);
     }
 
     class StringListWidget extends ObjectSelectionList<StringListWidget.Entry> {
@@ -453,14 +451,21 @@ public class SetSpawnScreen extends ScaledScreen {
             super.render(g, mx, my, pt);
             if (this.getMaxScroll() > 0) {
                 int barX = this.getScrollbarPosition();
-                g.fill(barX, listTop, barX + 8, listBottom, 0xFF111111);
-
                 int height = listBottom - listTop;
                 int thumbH = Math.max(20, (int) ((float) height * height / this.getMaxPosition()));
-                int thumbY = listTop + (int) ((this.getScrollAmount() / this.getMaxScroll()) * (height - thumbH));
-                int max = Math.max(listTop, Math.min(thumbY, listBottom - thumbH));
-
-                g.fill(barX + 1, max, barX + 7, max + thumbH, 0xFF888888);
+                GuiTheme.scrollbar(
+                        g,
+                        mx,
+                        my,
+                        barX,
+                        listTop,
+                        4,
+                        height,
+                        thumbH,
+                        (int) (double) this.getMaxScroll(),
+                        this.getScrollAmount(),
+                        false
+                );
             }
         }
 

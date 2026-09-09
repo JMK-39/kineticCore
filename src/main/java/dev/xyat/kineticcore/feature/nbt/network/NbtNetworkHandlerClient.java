@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.feature.nbt.network;
 
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.gui.NbtEditorScreen;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.selector.NbtEditorScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
@@ -89,6 +89,6 @@ public final class NbtNetworkHandlerClient {
 
     public static void handleNotify(String translationKey) {
         pendingEditorParent = null;
-        GuiToastUtil.showToast(TOAST_ID, Component.translatable(translationKey));
+        GuiOverlay.toast(TOAST_ID, Component.translatable(translationKey));
     }
 }

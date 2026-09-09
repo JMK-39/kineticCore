@@ -1,12 +1,11 @@
 package dev.xyat.kineticcore.feature.firstjoin.client;
 
-import dev.xyat.kineticcore.api.client.AdaptiveItemGridRenderer;
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ItemCache;
-import dev.xyat.kineticcore.api.client.ItemSelectorScreen;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.gui.NbtEditorScreen;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.search.ItemSearchIndex;
+import dev.xyat.kineticcore.api.client.selector.ItemSelectorScreen;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.selector.NbtEditorScreen;
 import dev.xyat.kineticcore.config.client.KTServerConfigClient;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfig;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfigGui;
@@ -31,7 +30,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class FirstJoinEquipmentScreen extends ScaledScreen {
+public final class FirstJoinEquipmentScreen extends KineticScreen {
     private static final int SLOT_SIZE = 18;
     private static final int SLOT_Y = 116;
     private static final int SLOT_GAP = 70;
@@ -53,7 +52,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
     public FirstJoinEquipmentScreen(Screen parent) {
         super(Component.translatable("gui.kineticcore.firstjoin.equipment.title"));
         this.parent = parent;
-        configureResponsiveCanvas(640, 360, 6);
+        useCanvas(640, 360, 6);
         loadStacks();
     }
 
@@ -114,7 +113,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
     }
 
     @Override
-    protected void initScaled() {
+    protected void buildUi() {
         addRenderableWidget(Button.builder(
                         Component.translatable("gui.kineticcore.config.back"),
                         button -> saveAndClose())
@@ -123,7 +122,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
     }
 
     private void openItemSelector(String slotKey) {
-        ItemCache.prepareCache(() -> {
+        ItemSearchIndex.prepareCache(() -> {
             Minecraft minecraft = Minecraft.getInstance();
             minecraft.setScreen(new ItemSelectorScreen(this, selection -> {
                 if (selection == null || !selection.isItem()) {
@@ -168,7 +167,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
         values.put("boots", PlayerConfig.serializeItemStack(stacks.get("boots")));
         values.put("offhand", PlayerConfig.serializeItemStack(stacks.get("offhand")));
         if (!KTServerConfigClient.savePartial(PlayerConfigGui.PAGE_ID, values)) {
-            GuiToastUtil.showToast(Component.translatable("gui.kineticcore.config.server.save_failed"));
+            GuiOverlay.toast(Component.translatable("gui.kineticcore.config.server.save_failed"));
             return;
         }
         if (minecraft != null) {
@@ -183,7 +182,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
     private String slotAt(double mouseX, double mouseY) {
         for (int index = 0; index < SLOT_DEFINITIONS.size(); index++) {
             int x = slotX(index);
-            if (GuiRenderUtil.isHovering(mouseX, mouseY, x, SLOT_Y, SLOT_SIZE, SLOT_SIZE)) {
+            if (GuiTheme.hovering(mouseX, mouseY, x, SLOT_Y, SLOT_SIZE, SLOT_SIZE)) {
                 return SLOT_DEFINITIONS.get(index).key();
             }
         }
@@ -191,9 +190,9 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
     }
 
     @Override
-    protected void renderScaledBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        GuiRenderUtil.drawStandardPanel(graphics, 70, 42, 500, 226);
-        graphics.drawCenteredString(font, title, vWidth / 2, 58, 0xFFFFFF);
+    protected void renderCanvasBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        GuiTheme.panel(graphics, 70, 42, 500, 226);
+        graphics.drawCenteredString(font, title, canvasWidth / 2, 58, 0xFFFFFF);
         hoveredSlot = slotAt(mouseX, mouseY);
 
         for (int index = 0; index < SLOT_DEFINITIONS.size(); index++) {
@@ -209,8 +208,8 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
                     SLOT_Y - 17,
                     0xFFFFFF
             );
-            AdaptiveItemGridRenderer.drawSlot(graphics, x, SLOT_Y, SLOT_SIZE, 4, hovered);
-            AdaptiveItemGridRenderer.renderItem(
+            GuiTheme.itemSlot(graphics, x, SLOT_Y, SLOT_SIZE, 4, hovered);
+            GuiTheme.item(
                     graphics,
                     font,
                     stack,
@@ -225,7 +224,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
         graphics.drawCenteredString(
                 font,
                 Component.translatable("gui.kineticcore.firstjoin.equipment.hint"),
-                vWidth / 2,
+                canvasWidth / 2,
                 210,
                 0xFFFFFF
         );
@@ -248,17 +247,11 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
         if (stack.isEmpty()) {
             return;
         }
-
-        graphics.pose().pushPose();
-        graphics.pose().translate(mouseX, mouseY, 500);
-        graphics.pose().scale(guiScale, guiScale, 1.0F);
-        graphics.pose().translate(-mouseX, -mouseY, 0);
-        graphics.renderTooltip(font, stack, mouseX, mouseY);
-        graphics.pose().popPose();
+        showItemTooltip(stack);
     }
 
     @Override
-    protected boolean universalMouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean canvasMouseClicked(double mouseX, double mouseY, int button) {
         String slotKey = slotAt(mouseX, mouseY);
         if (slotKey != null) {
             if (button == 0) {
@@ -274,7 +267,7 @@ public final class FirstJoinEquipmentScreen extends ScaledScreen {
                 return true;
             }
         }
-        return super.universalMouseClicked(mouseX, mouseY, button);
+        return super.canvasMouseClicked(mouseX, mouseY, button);
     }
 
     @Override

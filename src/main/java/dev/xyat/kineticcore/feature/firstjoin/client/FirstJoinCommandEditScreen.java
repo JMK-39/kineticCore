@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.feature.firstjoin.client;
 
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -99,7 +99,7 @@ public final class FirstJoinCommandEditScreen extends Screen {
     private void saveCommand() {
         String command = normalizeForStorage(input.getValue());
         if (command.isBlank()) {
-            GuiToastUtil.showToast(Component.translatable("msg.kineticcore.firstjoin.command_edit.empty"));
+            GuiOverlay.toast(Component.translatable("msg.kineticcore.firstjoin.command_edit.empty"));
             return;
         }
 
@@ -107,7 +107,7 @@ public final class FirstJoinCommandEditScreen extends Screen {
             parent.saveEditedCommand(editingIndex, command);
             closeToParent();
         } catch (Throwable throwable) {
-            GuiToastUtil.showToast(parent.saveFailedMessage());
+            GuiOverlay.toast(parent.saveFailedMessage());
         }
     }
 
@@ -142,7 +142,7 @@ public final class FirstJoinCommandEditScreen extends Screen {
 
         int panelWidth = Math.max(280, Math.min(width - 32, 720));
         int panelX = (width - panelWidth) / 2;
-        GuiRenderUtil.drawStandardPanel(graphics, panelX, 14, panelWidth, 112);
+        GuiTheme.panel(graphics, panelX, 14, panelWidth, 112);
         graphics.drawCenteredString(font, title, width / 2, 30, 0xFFFFFF);
         graphics.drawString(
                 font,

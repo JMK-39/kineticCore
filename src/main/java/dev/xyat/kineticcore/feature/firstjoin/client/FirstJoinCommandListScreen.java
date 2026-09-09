@@ -1,10 +1,9 @@
 package dev.xyat.kineticcore.feature.firstjoin.client;
 
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
-import dev.xyat.kineticcore.api.client.gui.GridScrollController;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.GridScrollController;
 import dev.xyat.kineticcore.config.client.KTServerConfigClient;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfig;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfigGui;
@@ -25,7 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @OnlyIn(Dist.CLIENT)
-public final class FirstJoinCommandListScreen extends ScaledScreen {
+public final class FirstJoinCommandListScreen extends KineticScreen {
     private static final int PANEL_X = 24;
     private static final int PANEL_Y = 18;
     private static final int PANEL_W = 592;
@@ -37,7 +36,7 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
     private static final int VISIBLE_ROWS = 10;
     private static final int LIST_H = ROW_H * VISIBLE_ROWS;
     private static final int SCROLL_X = LIST_X + LIST_W + 6;
-    private static final int SCROLL_W = 6;
+    private static final int SCROLL_W = 4;
     private static final int MOVE_W = 34;
     private static final int DELETE_W = 54;
     private static final int BUTTON_GAP = 3;
@@ -125,11 +124,12 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
         this.serverEntryId = serverEntryId;
         this.commandSetter.accept(KTServerConfigClient.getStringList(serverPageId, serverEntryId, commandGetter.get()));
         this.showPlayerVariables = showPlayerVariables;
-        configureResponsiveCanvas(640F, 360F, 6);
+        useCanvas(640F, 360F, 6);
     }
 
     @Override
-    protected void initScaled() {
+    protected void buildUi() {
+        resetScrollableWidgets();
         upButtons.clear();
         downButtons.clear();
         deleteButtons.clear();
@@ -138,22 +138,23 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
         int deleteX = LIST_X + LIST_W - DELETE_W - 4;
         int downX = deleteX - BUTTON_GAP - MOVE_W;
         int upX = downX - BUTTON_GAP - MOVE_W;
-        for (int row = 0; row < VISIBLE_ROWS; row++) {
-            final int localRow = row;
-            int y = LIST_Y + row * ROW_H + 2;
-            upButtons.add(addRenderableWidget(Button.builder(
+        List<String> commands = currentCommands();
+        for (int index = 0; index < commands.size(); index++) {
+            final int commandIndex = index;
+            int y = LIST_Y + index * ROW_H + 2;
+            upButtons.add(addRowWidget(Button.builder(
                             Component.literal("↑"),
-                            button -> moveVisible(localRow, -1))
+                            button -> moveIndex(commandIndex, -1))
                     .bounds(upX, y, MOVE_W, ROW_H - 6)
                     .build()));
-            downButtons.add(addRenderableWidget(Button.builder(
+            downButtons.add(addRowWidget(Button.builder(
                             Component.literal("↓"),
-                            button -> moveVisible(localRow, 1))
+                            button -> moveIndex(commandIndex, 1))
                     .bounds(downX, y, MOVE_W, ROW_H - 6)
                     .build()));
-            deleteButtons.add(addRenderableWidget(Button.builder(
+            deleteButtons.add(addRowWidget(Button.builder(
                             Component.translatable("gui.kineticcore.firstjoin.command_list.delete"),
-                            button -> deleteVisible(localRow))
+                            button -> deleteCommand(commandIndex))
                     .bounds(deleteX, y, DELETE_W, ROW_H - 6)
                     .build()));
         }
@@ -170,6 +171,17 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
                 .bounds(472, 314, 110, 20)
                 .build());
         updateRowButtons();
+    }
+
+    private <T extends net.minecraft.client.gui.components.AbstractWidget> T addRowWidget(T widget) {
+        return addScrollableWidget(
+                widget,
+                LIST_X,
+                LIST_Y,
+                LIST_X + LIST_W,
+                LIST_Y + LIST_H,
+                () -> scroll.smoothOffset() * ROW_H
+        );
     }
 
     List<String> currentCommands() {
@@ -194,13 +206,13 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
         }
         persist(updated);
         refreshAfterEdit();
-        GuiToastUtil.showToast(savedMessage);
+        GuiOverlay.toast(savedMessage);
     }
 
     void refreshAfterEdit() {
         updateScrollRange();
         int lastIndex = Math.max(0, currentCommands().size() - 1);
-        if (lastIndex >= scroll.offset() + VISIBLE_ROWS) {
+        if (lastIndex >= scroll.smoothOffset() + VISIBLE_ROWS) {
             scroll.setOffset(lastIndex - VISIBLE_ROWS + 1);
         }
         updateRowButtons();
@@ -214,64 +226,50 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
         scroll.update(currentCommands().size(), VISIBLE_ROWS);
     }
 
-    private int visibleIndex(int localRow) {
-        int index = scroll.offset() + localRow;
-        return index >= 0 && index < currentCommands().size() ? index : -1;
-    }
-
     private void updateRowButtons() {
-        if (upButtons.size() < VISIBLE_ROWS || downButtons.size() < VISIBLE_ROWS || deleteButtons.size() < VISIBLE_ROWS) {
-            return;
-        }
         int size = currentCommands().size();
-        for (int row = 0; row < VISIBLE_ROWS; row++) {
-            int index = visibleIndex(row);
-            boolean visible = index >= 0;
-            upButtons.get(row).visible = visible;
-            downButtons.get(row).visible = visible;
-            deleteButtons.get(row).visible = visible;
+        int buttonCount = Math.min(size, Math.min(upButtons.size(), Math.min(downButtons.size(), deleteButtons.size())));
+        for (int index = 0; index < upButtons.size(); index++) {
+            boolean visible = index < buttonCount;
+            upButtons.get(index).visible = visible;
+            downButtons.get(index).visible = visible;
+            deleteButtons.get(index).visible = visible;
             if (visible) {
-                upButtons.get(row).active = index > 0;
-                downButtons.get(row).active = index < size - 1;
-                deleteButtons.get(row).active = true;
+                upButtons.get(index).active = index > 0;
+                downButtons.get(index).active = index < size - 1;
+                deleteButtons.get(index).active = true;
             }
         }
     }
 
-    private void moveVisible(int localRow, int direction) {
-        int index = visibleIndex(localRow);
+    private void moveIndex(int index, int direction) {
         int target = index + direction;
         List<String> commands = currentCommands();
-        if (index < 0 || target < 0 || target >= commands.size()) return;
+        if (index < 0 || index >= commands.size() || target < 0 || target >= commands.size()) return;
         try {
             List<String> updated = new ArrayList<>(commands);
             String command = updated.remove(index);
             updated.add(target, command);
             persist(updated);
-            if (target < scroll.offset()) scroll.setOffset(target);
-            if (target >= scroll.offset() + VISIBLE_ROWS) scroll.setOffset(target - VISIBLE_ROWS + 1);
+            if (target < scroll.smoothOffset()) scroll.setOffset(target);
+            if (target >= scroll.smoothOffset() + VISIBLE_ROWS) scroll.setOffset(target - VISIBLE_ROWS + 1);
             updateRowButtons();
         } catch (Throwable throwable) {
-            GuiToastUtil.showToast(saveFailedMessage);
+            GuiOverlay.toast(saveFailedMessage);
         }
     }
 
-    private void deleteVisible(int localRow) {
-        int index = visibleIndex(localRow);
-        if (index >= 0) deleteCommand(index);
-    }
-
     @Override
-    protected void renderScaledBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+    protected void renderCanvasBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         deferredTooltip = null;
         updateRowButtons();
-        graphics.fillGradient(0, 0, vWidth, vHeight, 0xFF171717, 0xFF0E0E0E);
-        GuiRenderUtil.drawStandardPanel(graphics, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-        GuiRenderUtil.drawDarkPanel(graphics, LIST_X - 4, LIST_Y - 4, LIST_W + 8, LIST_H + 8);
-        graphics.drawCenteredString(font, title, vWidth / 2, 30, 0xFFFFFF);
+        graphics.fillGradient(0, 0, canvasWidth, canvasHeight, 0xFF171717, 0xFF0E0E0E);
+        GuiTheme.panel(graphics, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+        GuiTheme.panelAlt(graphics, LIST_X - 4, LIST_Y - 4, LIST_W + 8, LIST_H + 8);
+        graphics.drawCenteredString(font, title, canvasWidth / 2, 30, 0xFFFFFF);
 
         renderRows(graphics, mouseX, mouseY);
-        ConfigScrollbarTheme.render(scroll, graphics, mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18);
+        GuiTheme.scrollbar(scroll, graphics, mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18);
 
         if (currentCommands().isEmpty()) {
             graphics.drawCenteredString(
@@ -286,35 +284,45 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
 
     private void renderRows(GuiGraphics graphics, int mouseX, int mouseY) {
         List<String> commands = currentCommands();
-        int start = scroll.offset();
-        int end = Math.min(start + VISIBLE_ROWS, commands.size());
+        scroll.update(commands.size(), VISIBLE_ROWS);
+        double smoothOffset = scroll.smoothOffset();
+        int first = Math.max(0, (int) Math.floor(smoothOffset));
+        int end = Math.min(commands.size(), first + VISIBLE_ROWS + 2);
         int actionWidth = MOVE_W * 2 + DELETE_W + BUTTON_GAP * 2 + 12;
 
-        for (int index = start; index < end; index++) {
-            int local = index - start;
-            int y = LIST_Y + local * ROW_H;
-            boolean hovered = mouseX >= LIST_X && mouseX < LIST_X + LIST_W - actionWidth
-                    && mouseY >= y && mouseY < y + ROW_H - 2;
-            graphics.fill(LIST_X, y, LIST_X + LIST_W, y + ROW_H - 2, local % 2 == 0 ? 0xCC181818 : 0xCC111111);
-            graphics.renderOutline(LIST_X, y, LIST_W, ROW_H - 2, hovered ? 0xFF55AAFF : 0xFF555555);
+        enableCanvasScissor(graphics, LIST_X, LIST_Y, LIST_X + LIST_W, LIST_Y + LIST_H);
+        try {
+            for (int index = first; index < end; index++) {
+                int y = LIST_Y + (int) Math.round((index - smoothOffset) * ROW_H);
+                boolean hovered = mouseX >= LIST_X
+                        && mouseX < LIST_X + LIST_W - actionWidth
+                        && mouseY >= LIST_Y
+                        && mouseY < LIST_Y + LIST_H
+                        && mouseY >= y
+                        && mouseY < y + ROW_H - 2;
+                graphics.fill(LIST_X, y, LIST_X + LIST_W, y + ROW_H - 2, index % 2 == 0 ? 0xCC181818 : 0xCC111111);
+                graphics.renderOutline(LIST_X, y, LIST_W, ROW_H - 2, hovered ? GuiTheme.current().accentHover() : 0xFF555555);
 
-            String display = displayCommand(commands.get(index));
-            int commandWidth = LIST_W - actionWidth - 14;
-            graphics.drawString(
-                    font,
-                    GuiRenderUtil.trimText(font, display, commandWidth),
-                    LIST_X + 7,
-                    y + 7,
-                    0xFFFFFF,
-                    false
-            );
-
-            if (hovered) {
-                deferredTooltip = List.of(
-                        Component.literal(display),
-                        Component.translatable("gui.kineticcore.firstjoin.command_list.edit_hint")
+                String display = displayCommand(commands.get(index));
+                int commandWidth = LIST_W - actionWidth - 14;
+                graphics.drawString(
+                        font,
+                        GuiTheme.trim(font, display, commandWidth),
+                        LIST_X + 7,
+                        y + 7,
+                        0xFFFFFF,
+                        false
                 );
+
+                if (hovered) {
+                    deferredTooltip = List.of(
+                            Component.literal(display),
+                            Component.translatable("gui.kineticcore.firstjoin.command_list.edit_hint")
+                    );
+                }
             }
+        } finally {
+            graphics.disableScissor();
         }
     }
 
@@ -330,9 +338,10 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
     }
 
     private int rowIndex(double mouseY) {
-        int localRow = (int) ((mouseY - LIST_Y) / ROW_H);
-        if (localRow < 0 || localRow >= VISIBLE_ROWS) return -1;
-        return visibleIndex(localRow);
+        if (mouseY < LIST_Y || mouseY >= LIST_Y + LIST_H) return -1;
+        double contentY = mouseY - LIST_Y + scroll.smoothOffset() * ROW_H;
+        int index = (int) Math.floor(contentY / ROW_H);
+        return index >= 0 && index < currentCommands().size() ? index : -1;
     }
 
     private void openEditor(int index) {
@@ -349,9 +358,9 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
             persist(updated);
             updateScrollRange();
             updateRowButtons();
-            GuiToastUtil.showToast(deletedMessage);
+            GuiOverlay.toast(deletedMessage);
         } catch (Throwable throwable) {
-            GuiToastUtil.showToast(saveFailedMessage);
+            GuiOverlay.toast(saveFailedMessage);
         }
     }
 
@@ -364,8 +373,8 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseClicked(double mouseX, double mouseY, int button) {
-        if (super.universalMouseClicked(mouseX, mouseY, button)) return true;
+    protected boolean canvasMouseClicked(double mouseX, double mouseY, int button) {
+        if (super.canvasMouseClicked(mouseX, mouseY, button)) return true;
         if (button == 0 && scroll.beginDrag(mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18, 2)) return true;
         if (button == 0 && inList(mouseX, mouseY)) {
             int index = rowIndex(mouseY);
@@ -378,29 +387,28 @@ public final class FirstJoinCommandListScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    protected boolean canvasMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         return scroll.drag(mouseY, LIST_Y, LIST_H, 18)
-                || super.universalMouseDragged(mouseX, mouseY, button, dragX, dragY);
+                || super.canvasMouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
-    protected boolean universalMouseReleased(double mouseX, double mouseY, int button) {
-        return scroll.release(button) || super.universalMouseReleased(mouseX, mouseY, button);
+    protected boolean canvasMouseReleased(double mouseX, double mouseY, int button) {
+        return scroll.release(button) || super.canvasMouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseScrolled(double mouseX, double mouseY, double delta) {
+    protected boolean canvasMouseScrolled(double mouseX, double mouseY, double delta) {
         if (inList(mouseX, mouseY) && scroll.scroll(delta)) {
-            updateRowButtons();
             return true;
         }
-        return super.universalMouseScrolled(mouseX, mouseY, delta);
+        return super.canvasMouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
     protected void renderTooltips(GuiGraphics graphics, int scaledMouseX, int scaledMouseY, int mouseX, int mouseY) {
         if (deferredTooltip != null) {
-            graphics.renderComponentTooltip(font, deferredTooltip, mouseX, mouseY);
+            showTooltip(deferredTooltip);
         }
     }
 

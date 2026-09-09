@@ -596,9 +596,9 @@
   "datapack.kineticcore.reload_prompt": "§a配置已保存！请在§6§l进入存档后§a按下§6§lF3+T§a或§6§l重启游戏§a以应用更改。",
   "cfg.kineticcore.datapack.pack_order.title": "数据包与资源包顺序",
   "cfg.kineticcore.datapack.pack_order.datapacks": "数据包优先级",
-  "cfg.kineticcore.datapack.pack_order.datapacks.tooltip": "越靠上的条目优先级越高；保存后执行 /reload、重进世界或重启服务器。",
+  "cfg.kineticcore.datapack.pack_order.datapacks.tooltip": "§6优先级规则：§e列表越靠上优先级越高；内容冲突时，以上方数据包为准。\n§b操作：§a按住 Ctrl + 左键抓住整行拖动，条目会跟随鼠标悬浮移动，其他条目实时让位；松开后落位。也可使用 ↑ / ↓。",
   "cfg.kineticcore.datapack.pack_order.resourcepacks": "资源包优先级",
-  "cfg.kineticcore.datapack.pack_order.resourcepacks.tooltip": "越靠上的条目优先级越高；使用箭头调整顺序，保存后需重载资源。",
+  "cfg.kineticcore.datapack.pack_order.resourcepacks.tooltip": "§6覆盖规则：§e列表越靠上优先级越高；内容冲突时，上面的资源包会覆盖下面的资源包。\n§b操作：§a按住 Ctrl + 左键抓住整行拖动，条目会像图标一样跟随鼠标移动，其他条目实时让位；松开后落位。也可使用 ↑ / ↓。",
   "cfg.kineticcore.datapack.pack_order.apply_notice": "资源包顺序需按 F3+T 重载；数据包顺序需执行 /reload、重进世界或重启服务器。",
   "datapack.kineticcore.failed.entry": "%s (%s)",
   "datapack.kineticcore.name_and_source": "%s (%s)",
@@ -743,5 +743,8 @@
   "gui.kineticcore.palette.context.load": "§b载入此颜色",
   "gui.kineticcore.palette.context.delete": "§c删除此颜色",
   "gui.kineticcore.palette.context.clear": "§e清空调色板",
-  "gui.kineticcore.config.color_picker.tooltip": "§b点击打开高级 RGB 调色板。"
+  "gui.kineticcore.config.color_picker.tooltip": "§b点击打开高级 RGB 调色板。",
+  "gui.kineticcore.config.move_up": "↑",
+  "gui.kineticcore.config.move_down": "↓",
+  "gui.kineticcore.config.remove_short": "×"
 }

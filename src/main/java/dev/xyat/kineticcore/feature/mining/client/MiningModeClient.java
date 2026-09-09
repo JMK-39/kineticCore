@@ -3,7 +3,7 @@ package dev.xyat.kineticcore.feature.mining.client;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.xyat.kineticcore.KineticCore;
 import dev.xyat.kineticcore.feature.mining.network.MiningModeNetwork;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -50,9 +50,9 @@ public class MiningModeClient {
 
                         // 弹出 Toast 提醒（无物品要求，全局生效）
                         if (isSingleModeClientSide) {
-                            GuiToastUtil.showToast("mining_mode_toggle", Component.translatable("tip.kineticcore.mining.mode.single"));
+                            GuiOverlay.toast("mining_mode_toggle", Component.translatable("tip.kineticcore.mining.mode.single"));
                         } else {
-                            GuiToastUtil.showToast("mining_mode_toggle", Component.translatable("tip.kineticcore.mining.mode.normal"));
+                            GuiOverlay.toast("mining_mode_toggle", Component.translatable("tip.kineticcore.mining.mode.normal"));
                         }
 
                         // 发送无参数空包给服务端，通知服务端翻转 NBT 状态

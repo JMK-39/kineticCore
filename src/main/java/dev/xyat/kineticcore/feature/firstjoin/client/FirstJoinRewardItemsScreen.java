@@ -1,14 +1,12 @@
 package dev.xyat.kineticcore.feature.firstjoin.client;
 
-import dev.xyat.kineticcore.api.client.AdaptiveItemGridRenderer;
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ItemCache;
-import dev.xyat.kineticcore.api.client.ItemSelectorScreen;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
-import dev.xyat.kineticcore.api.client.gui.GridScrollController;
-import dev.xyat.kineticcore.api.client.gui.NbtEditorScreen;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.search.ItemSearchIndex;
+import dev.xyat.kineticcore.api.client.selector.ItemSelectorScreen;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.GridScrollController;
+import dev.xyat.kineticcore.api.client.selector.NbtEditorScreen;
 import dev.xyat.kineticcore.config.client.KTServerConfigClient;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfig;
 import dev.xyat.kineticcore.feature.firstjoin.config.PlayerConfigGui;
@@ -28,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public final class FirstJoinRewardItemsScreen extends ScaledScreen {
+public final class FirstJoinRewardItemsScreen extends KineticScreen {
     private static final int PANEL_X = 24;
     private static final int PANEL_Y = 18;
     private static final int PANEL_W = 592;
@@ -46,7 +44,7 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
     private static final int ITEM_Y_OFFSET = 7;
     private static final int SLOT_SIZE = 18;
     private static final int SCROLL_X = LIST_X + LIST_W + 6;
-    private static final int SCROLL_W = 6;
+    private static final int SCROLL_W = 4;
     private static final int MOVE_BUTTON_W = 30;
     private static final int DELETE_BUTTON_W = 48;
     private static final int BUTTON_GAP = 3;
@@ -60,7 +58,6 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
     private final List<Button> downButtons = new ArrayList<>();
     private final List<Button> deleteButtons = new ArrayList<>();
     private boolean updatingCountFields;
-    private int hoveredIndex = -1;
 
     public FirstJoinRewardItemsScreen(Screen parent) {
         super(Component.translatable("gui.kineticcore.firstjoin.reward_items.title"));
@@ -92,11 +89,12 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
             }
             defaultSlot++;
         }
-        configureResponsiveCanvas(640F, 360F, 6);
+        useCanvas(640F, 360F, 6);
     }
 
     @Override
-    protected void initScaled() {
+    protected void buildUi() {
+        resetScrollableWidgets();
         countFields.clear();
         upButtons.clear();
         downButtons.clear();
@@ -107,9 +105,9 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         int downX = deleteX - BUTTON_GAP - MOVE_BUTTON_W;
         int upX = downX - BUTTON_GAP - MOVE_BUTTON_W;
 
-        for (int row = 0; row < VISIBLE_ROWS; row++) {
-            final int localRow = row;
-            int y = LIST_Y + row * ROW_H + 6;
+        for (int index = 0; index < entries.size(); index++) {
+            final int entryIndex = index;
+            int y = LIST_Y + index * ROW_H + 6;
 
             EditBox countField = new EditBox(
                     font,
@@ -121,22 +119,22 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
             );
             countField.setMaxLength(3);
             countField.setFilter(value -> value.isEmpty() || value.matches("[1-9]\\d{0,2}"));
-            countField.setResponder(value -> applyVisibleCount(localRow, value));
-            countFields.add(addRenderableWidget(countField));
+            countField.setResponder(value -> applyCount(entryIndex, value));
+            countFields.add(addRowWidget(countField));
 
-            upButtons.add(addRenderableWidget(Button.builder(
+            upButtons.add(addRowWidget(Button.builder(
                             Component.literal("↑"),
-                            button -> moveVisible(localRow, -1))
+                            button -> moveIndex(entryIndex, -1))
                     .bounds(upX, y, MOVE_BUTTON_W, 20)
                     .build()));
-            downButtons.add(addRenderableWidget(Button.builder(
+            downButtons.add(addRowWidget(Button.builder(
                             Component.literal("↓"),
-                            button -> moveVisible(localRow, 1))
+                            button -> moveIndex(entryIndex, 1))
                     .bounds(downX, y, MOVE_BUTTON_W, 20)
                     .build()));
-            deleteButtons.add(addRenderableWidget(Button.builder(
+            deleteButtons.add(addRowWidget(Button.builder(
                             Component.translatable("gui.kineticcore.firstjoin.reward_items.delete"),
-                            button -> deleteVisible(localRow))
+                            button -> deleteIndex(entryIndex))
                     .bounds(deleteX, y, DELETE_BUTTON_W, 20)
                     .build()));
         }
@@ -159,24 +157,30 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         updateRowButtons();
     }
 
-    private void updateScrollRange() {
-        scroll.update(entries.size(), VISIBLE_ROWS);
+    private <T extends net.minecraft.client.gui.components.AbstractWidget> T addRowWidget(T widget) {
+        return addScrollableWidget(
+                widget,
+                LIST_X,
+                LIST_Y,
+                LIST_X + LIST_W,
+                LIST_Y + LIST_H,
+                () -> scroll.smoothOffset() * ROW_H
+        );
     }
 
-    private int visibleIndex(int localRow) {
-        int index = scroll.offset() + localRow;
-        return index >= 0 && index < entries.size() ? index : -1;
+    private void updateScrollRange() {
+        scroll.update(entries.size(), VISIBLE_ROWS);
     }
 
     private void updateRowButtons() {
         updatingCountFields = true;
         try {
-            for (int row = 0; row < VISIBLE_ROWS; row++) {
-                int index = visibleIndex(row);
-                boolean visible = index >= 0;
+            int widgetCount = Math.min(entries.size(), countFields.size());
+            for (int index = 0; index < countFields.size(); index++) {
+                boolean visible = index < widgetCount;
                 boolean stackable = visible && entries.get(index).stack().getMaxStackSize() > 1;
 
-                EditBox countField = countFields.get(row);
+                EditBox countField = countFields.get(index);
                 countField.setVisible(stackable);
                 countField.setEditable(stackable);
                 if (stackable) {
@@ -191,13 +195,13 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
                     }
                 }
 
-                upButtons.get(row).visible = visible;
-                downButtons.get(row).visible = visible;
-                deleteButtons.get(row).visible = visible;
+                upButtons.get(index).visible = visible;
+                downButtons.get(index).visible = visible;
+                deleteButtons.get(index).visible = visible;
                 if (visible) {
-                    upButtons.get(row).active = index > 0;
-                    downButtons.get(row).active = index < entries.size() - 1;
-                    deleteButtons.get(row).active = true;
+                    upButtons.get(index).active = index > 0;
+                    downButtons.get(index).active = index < entries.size() - 1;
+                    deleteButtons.get(index).active = true;
                 }
             }
         } finally {
@@ -205,10 +209,9 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         }
     }
 
-    private void applyVisibleCount(int localRow, String value) {
+    private void applyCount(int index, String value) {
         if (updatingCountFields || value == null || value.isBlank()) return;
-        int index = visibleIndex(localRow);
-        if (index < 0) return;
+        if (index < 0 || index >= entries.size()) return;
         ItemStack stack = entries.get(index).stack();
         if (stack.getMaxStackSize() <= 1) return;
         try {
@@ -217,22 +220,20 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         }
     }
 
-    private void moveVisible(int localRow, int direction) {
+    private void moveIndex(int index, int direction) {
         clearCountFieldFocus();
-        int index = visibleIndex(localRow);
         int target = index + direction;
-        if (index < 0 || target < 0 || target >= entries.size()) return;
+        if (index < 0 || index >= entries.size() || target < 0 || target >= entries.size()) return;
         RewardEntry entry = entries.remove(index);
         entries.add(target, entry);
-        if (target < scroll.offset()) scroll.setOffset(target);
-        if (target >= scroll.offset() + VISIBLE_ROWS) scroll.setOffset(target - VISIBLE_ROWS + 1);
+        if (target < scroll.smoothOffset()) scroll.setOffset(target);
+        if (target >= scroll.smoothOffset() + VISIBLE_ROWS) scroll.setOffset(target - VISIBLE_ROWS + 1);
         updateRowButtons();
     }
 
-    private void deleteVisible(int localRow) {
+    private void deleteIndex(int index) {
         clearCountFieldFocus();
-        int index = visibleIndex(localRow);
-        if (index < 0) return;
+        if (index < 0 || index >= entries.size()) return;
         entries.remove(index);
         updateScrollRange();
         updateRowButtons();
@@ -246,14 +247,14 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
 
     private void addEntry() {
         clearCountFieldFocus();
-        ItemCache.prepareCache(() -> {
+        ItemSearchIndex.prepareCache(() -> {
             Minecraft minecraft = Minecraft.getInstance();
             minecraft.setScreen(new ItemSelectorScreen(this, selection -> {
                 if (selection == null || !selection.isItem()) return;
                 entries.add(new RewardEntry(firstFreeInventorySlot(), selection.stack().copy()));
                 updateScrollRange();
                 int last = entries.size() - 1;
-                if (last >= scroll.offset() + VISIBLE_ROWS) {
+                if (last >= scroll.smoothOffset() + VISIBLE_ROWS) {
                     scroll.setOffset(last - VISIBLE_ROWS + 1);
                 }
                 updateRowButtons();
@@ -278,7 +279,7 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
     private void openItemSelector(int index) {
         clearCountFieldFocus();
         if (index < 0 || index >= entries.size()) return;
-        ItemCache.prepareCache(() -> {
+        ItemSearchIndex.prepareCache(() -> {
             Minecraft minecraft = Minecraft.getInstance();
             minecraft.setScreen(new ItemSelectorScreen(this, selection -> {
                 if (selection == null || !selection.isItem() || index >= entries.size()) return;
@@ -322,7 +323,7 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
             }
         }
         if (!KTServerConfigClient.savePartial(PlayerConfigGui.PAGE_ID, Map.of("items", saved))) {
-            GuiToastUtil.showToast(Component.translatable("gui.kineticcore.config.server.save_failed"));
+            GuiOverlay.toast(Component.translatable("gui.kineticcore.config.server.save_failed"));
             return;
         }
         if (minecraft != null) minecraft.setScreen(parent);
@@ -379,66 +380,71 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
     }
 
     private int rowIndex(double mouseY) {
-        int localRow = (int) ((mouseY - LIST_Y) / ROW_H);
-        if (localRow < 0 || localRow >= VISIBLE_ROWS) return -1;
-        return visibleIndex(localRow);
+        if (mouseY < LIST_Y || mouseY >= LIST_Y + LIST_H) return -1;
+        double contentY = mouseY - LIST_Y + scroll.smoothOffset() * ROW_H;
+        int index = (int) Math.floor(contentY / ROW_H);
+        return index >= 0 && index < entries.size() ? index : -1;
     }
 
     private boolean overItem(double mouseX, double mouseY, int index) {
-        if (index < 0 || index >= entries.size()) return false;
-        int localRow = index - scroll.offset();
-        if (localRow < 0 || localRow >= VISIBLE_ROWS) return false;
-        int y = LIST_Y + localRow * ROW_H + ITEM_Y_OFFSET;
-        return GuiRenderUtil.isHovering(mouseX, mouseY, ITEM_X, y, SLOT_SIZE, SLOT_SIZE);
+        if (index < 0 || index >= entries.size() || !inList(mouseX, mouseY)) return false;
+        int y = LIST_Y + (int) Math.round((index - scroll.smoothOffset()) * ROW_H) + ITEM_Y_OFFSET;
+        return GuiTheme.hovering(mouseX, mouseY, ITEM_X, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     @Override
-    protected void renderScaledBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        hoveredIndex = rowIndex(mouseY);
+    protected void renderCanvasBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        int hoveredIndex = rowIndex(mouseY);
         updateRowButtons();
-        graphics.fillGradient(0, 0, vWidth, vHeight, 0xFF171717, 0xFF0E0E0E);
-        GuiRenderUtil.drawStandardPanel(graphics, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
-        GuiRenderUtil.drawDarkPanel(graphics, LIST_X - 4, LIST_Y - 4, LIST_W + 8, LIST_H + 8);
-        graphics.drawCenteredString(font, title, vWidth / 2, 30, 0xFFFFFF);
+        graphics.fillGradient(0, 0, canvasWidth, canvasHeight, 0xFF171717, 0xFF0E0E0E);
+        GuiTheme.panel(graphics, PANEL_X, PANEL_Y, PANEL_W, PANEL_H);
+        GuiTheme.panelAlt(graphics, LIST_X - 4, LIST_Y - 4, LIST_W + 8, LIST_H + 8);
+        graphics.drawCenteredString(font, title, canvasWidth / 2, 30, 0xFFFFFF);
 
-        int start = scroll.offset();
-        int end = Math.min(start + VISIBLE_ROWS, entries.size());
-        for (int index = start; index < end; index++) {
-            int local = index - start;
-            int y = LIST_Y + local * ROW_H;
-            boolean rowHovered = index == hoveredIndex;
-            graphics.fill(LIST_X, y, LIST_X + LIST_W, y + ROW_H - 2, local % 2 == 0 ? 0xCC181818 : 0xCC111111);
-            graphics.renderOutline(LIST_X, y, LIST_W, ROW_H - 2, rowHovered ? 0xFF55AAFF : 0xFF555555);
+        scroll.update(entries.size(), VISIBLE_ROWS);
+        double smoothOffset = scroll.smoothOffset();
+        int first = Math.max(0, (int) Math.floor(smoothOffset));
+        int end = Math.min(entries.size(), first + VISIBLE_ROWS + 2);
+        enableCanvasScissor(graphics, LIST_X, LIST_Y, LIST_X + LIST_W, LIST_Y + LIST_H);
+        try {
+            for (int index = first; index < end; index++) {
+                int y = LIST_Y + (int) Math.round((index - smoothOffset) * ROW_H);
+                boolean rowHovered = index == hoveredIndex;
+                graphics.fill(LIST_X, y, LIST_X + LIST_W, y + ROW_H - 2, index % 2 == 0 ? 0xCC181818 : 0xCC111111);
+                graphics.renderOutline(LIST_X, y, LIST_W, ROW_H - 2, rowHovered ? GuiTheme.current().accentHover() : 0xFF555555);
 
-            RewardEntry entry = entries.get(index);
-            ItemStack stack = entry.stack();
-            int itemY = y + ITEM_Y_OFFSET;
-            boolean itemHovered = overItem(mouseX, mouseY, index);
-            if (!stack.isEmpty() && stack.getMaxStackSize() > 1) {
+                RewardEntry entry = entries.get(index);
+                ItemStack stack = entry.stack();
+                int itemY = y + ITEM_Y_OFFSET;
+                boolean itemHovered = overItem(mouseX, mouseY, index);
+                if (!stack.isEmpty() && stack.getMaxStackSize() > 1) {
+                    graphics.drawString(
+                            font,
+                            Component.translatable("gui.kineticcore.firstjoin.reward_items.count"),
+                            COUNT_LABEL_X,
+                            y + 12,
+                            0xFFFFFFFF,
+                            false
+                    );
+                }
+
+                GuiTheme.itemSlot(graphics, ITEM_X, itemY, SLOT_SIZE, 4, itemHovered);
+                GuiTheme.item(graphics, font, stack, ITEM_X, itemY, SLOT_SIZE, 1.0F, false);
+
                 graphics.drawString(
                         font,
-                        Component.translatable("gui.kineticcore.firstjoin.reward_items.count"),
-                        COUNT_LABEL_X,
-                        y + 12,
+                        GuiTheme.trim(font, stack.getHoverName().getString(), 220),
+                        ITEM_X + SLOT_SIZE + 8,
+                        y + 11,
                         0xFFFFFFFF,
                         false
                 );
             }
-
-            AdaptiveItemGridRenderer.drawSlot(graphics, ITEM_X, itemY, SLOT_SIZE, 4, itemHovered);
-            AdaptiveItemGridRenderer.renderItem(graphics, font, stack, ITEM_X, itemY, SLOT_SIZE, 1.0F, false);
-
-            graphics.drawString(
-                    font,
-                    GuiRenderUtil.trimText(font, stack.getHoverName().getString(), 220),
-                    ITEM_X + SLOT_SIZE + 8,
-                    y + 11,
-                    0xFFFFFFFF,
-                    false
-            );
+        } finally {
+            graphics.disableScissor();
         }
 
-        ConfigScrollbarTheme.render(scroll, graphics, mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18);
+        GuiTheme.scrollbar(scroll, graphics, mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18);
         if (entries.isEmpty()) {
             graphics.drawCenteredString(
                     font,
@@ -451,7 +457,7 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         graphics.drawCenteredString(
                 font,
                 Component.translatable("gui.kineticcore.firstjoin.reward_items.hint"),
-                vWidth / 2,
+                canvasWidth / 2,
                 292,
                 0xFFFFFFFF
         );
@@ -463,17 +469,12 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
         if (!overItem(scaledMouseX, scaledMouseY, index)) return;
         ItemStack stack = entries.get(index).stack();
         if (stack.isEmpty()) return;
-        graphics.pose().pushPose();
-        graphics.pose().translate(mouseX, mouseY, 500);
-        graphics.pose().scale(guiScale, guiScale, 1.0F);
-        graphics.pose().translate(-mouseX, -mouseY, 0);
-        graphics.renderTooltip(font, stack, mouseX, mouseY);
-        graphics.pose().popPose();
+        showItemTooltip(stack);
     }
 
     @Override
-    protected boolean universalMouseClicked(double mouseX, double mouseY, int button) {
-        if (super.universalMouseClicked(mouseX, mouseY, button)) return true;
+    protected boolean canvasMouseClicked(double mouseX, double mouseY, int button) {
+        if (super.canvasMouseClicked(mouseX, mouseY, button)) return true;
         if (button == 0 && scroll.beginDrag(mouseX, mouseY, SCROLL_X, LIST_Y, SCROLL_W, LIST_H, 18, 2)) return true;
         if (inList(mouseX, mouseY)) {
             int index = rowIndex(mouseY);
@@ -492,24 +493,23 @@ public final class FirstJoinRewardItemsScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    protected boolean canvasMouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         return scroll.drag(mouseY, LIST_Y, LIST_H, 18)
-                || super.universalMouseDragged(mouseX, mouseY, button, dragX, dragY);
+                || super.canvasMouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
-    protected boolean universalMouseReleased(double mouseX, double mouseY, int button) {
-        return scroll.release(button) || super.universalMouseReleased(mouseX, mouseY, button);
+    protected boolean canvasMouseReleased(double mouseX, double mouseY, int button) {
+        return scroll.release(button) || super.canvasMouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseScrolled(double mouseX, double mouseY, double delta) {
+    protected boolean canvasMouseScrolled(double mouseX, double mouseY, double delta) {
         if (inList(mouseX, mouseY) && scroll.scroll(delta)) {
             clearCountFieldFocus();
-            updateRowButtons();
             return true;
         }
-        return super.universalMouseScrolled(mouseX, mouseY, delta);
+        return super.canvasMouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override

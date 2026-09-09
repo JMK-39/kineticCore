@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.feature.defaultoptions.config;
 
 import dev.xyat.kineticcore.KineticCore;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import dev.xyat.kineticcore.bootstrap.annotation.KTClientModule;
 import dev.xyat.kineticcore.config.client.KTConfigApi;
 import dev.xyat.kineticcore.config.client.KTConfigPage;
@@ -55,7 +55,7 @@ public final class DefaultOptionsConfigGui {
     private static void saveCurrentOptions() {
         try {
             OptionsManager.saveAllSettingsAsDefault();
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     TOAST_ID,
                     Component.translatable("gui.kineticcore.default_options.save.success")
                             .withStyle(ChatFormatting.GREEN)
@@ -67,7 +67,7 @@ public final class DefaultOptionsConfigGui {
             if (detail == null || detail.isBlank()) {
                 detail = exception.getClass().getSimpleName();
             }
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     TOAST_ID,
                     Component.translatable(
                             "gui.kineticcore.default_options.save.failure",

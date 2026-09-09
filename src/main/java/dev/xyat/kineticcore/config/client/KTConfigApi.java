@@ -1,6 +1,6 @@
 package dev.xyat.kineticcore.config.client;
 
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -169,7 +169,7 @@ public final class KTConfigApi {
         LocalPlayer player = Minecraft.getInstance().player;
         ClientPacketListener connection = player == null ? null : player.connection;
         if (connection == null) {
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     "kineticcore_config_requires_world",
                     Component.translatable(REQUIRES_WORLD_KEY)
             );
@@ -180,7 +180,7 @@ public final class KTConfigApi {
     }
 
     private static void showUnavailable(KTConfigPage page) {
-        GuiToastUtil.showToast(
+        GuiOverlay.toast(
                 "kineticcore_config_unavailable",
                 unavailableReason(page)
         );

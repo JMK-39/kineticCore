@@ -596,9 +596,9 @@
   "datapack.kineticcore.reload_prompt": "§aSettings saved! Please press §6§lF3+T§a while §6§lin-game§a or §6§lrestart§a to apply changes.",
   "cfg.kineticcore.datapack.pack_order.title": "Data/Resource Pack Order",
   "cfg.kineticcore.datapack.pack_order.datapacks": "Data Pack Priority",
-  "cfg.kineticcore.datapack.pack_order.datapacks.tooltip": "Top entries have higher priority. After saving, use /reload, re-enter the world, or restart the server.",
+  "cfg.kineticcore.datapack.pack_order.datapacks.tooltip": "§6Priority rule: §eEntries higher in the list have higher priority; when content conflicts, the upper data pack wins.\n§bControls: §aHold Ctrl + left mouse to pick up and drag a whole row. The row follows the pointer while the other rows make room in real time; release to drop it. ↑ / ↓ also work.",
   "cfg.kineticcore.datapack.pack_order.resourcepacks": "Resource Pack Priority",
-  "cfg.kineticcore.datapack.pack_order.resourcepacks.tooltip": "Top entries have higher priority. Use the arrow buttons to reorder resource packs; reload resources to apply.",
+  "cfg.kineticcore.datapack.pack_order.resourcepacks.tooltip": "§6Override rule: §eEntries higher in the list have higher priority; when content conflicts, a resource pack above overrides the packs below it.\n§bControls: §aHold Ctrl + left mouse to pick up and drag a whole row like an icon. Other rows make room in real time; release to drop it. ↑ / ↓ also work.",
   "cfg.kineticcore.datapack.pack_order.apply_notice": "Use F3+T for resource-pack order; use /reload, re-enter the world, or restart the server for data packs.",
   "datapack.kineticcore.failed.entry": "%s (%s)",
   "datapack.kineticcore.name_and_source": "%s (%s)",
@@ -743,5 +743,8 @@
   "gui.kineticcore.palette.context.load": "§bLoad This Color",
   "gui.kineticcore.palette.context.delete": "§cDelete This Color",
   "gui.kineticcore.palette.context.clear": "§eClear Palette",
-  "gui.kineticcore.config.color_picker.tooltip": "§bClick to open the advanced RGB color picker."
+  "gui.kineticcore.config.color_picker.tooltip": "§bClick to open the advanced RGB color picker.",
+  "gui.kineticcore.config.move_up": "↑",
+  "gui.kineticcore.config.move_down": "↓",
+  "gui.kineticcore.config.remove_short": "×"
 }

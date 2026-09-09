@@ -2,7 +2,7 @@ package dev.xyat.kineticcore.feature.flight.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.xyat.kineticcore.KineticCore;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import dev.xyat.kineticcore.feature.flight.network.FlightNetwork;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -82,7 +82,7 @@ public class FlightClient {
         inertiaEnabled = !inertiaEnabled;
         Component status = Component.translatable(inertiaEnabled ? "msg.kineticcore.flying.on" : "msg.kineticcore.flying.off")
                 .withStyle(inertiaEnabled ? ChatFormatting.GREEN : ChatFormatting.RED);
-        GuiToastUtil.showToast("flight_inertia_toggle", Component.translatable("msg.kineticcore.flying.inertia_status", status));
+        GuiOverlay.toast("flight_inertia_toggle", Component.translatable("msg.kineticcore.flying.inertia_status", status));
     }
 
     @Mod.EventBusSubscriber(modid = KineticCore.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD)

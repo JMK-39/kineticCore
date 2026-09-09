@@ -1,17 +1,16 @@
 package dev.xyat.kineticcore.config.client;
 
 import dev.xyat.kineticcore.KineticCore;
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ItemListEditorScreen;
-import dev.xyat.kineticcore.api.client.PinyinUtil;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.color.ColorPickerApi;
-import dev.xyat.kineticcore.api.client.entity.EntitySelectorScreen;
-import dev.xyat.kineticcore.api.client.gui.ColorPreviewButton;
-import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
-import dev.xyat.kineticcore.api.client.gui.GridScrollController;
-import dev.xyat.kineticcore.api.client.gui.NumericEditBox;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.selector.ItemListEditorScreen;
+import dev.xyat.kineticcore.api.client.search.KineticSearch;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.selector.ColorPickerScreen;
+import dev.xyat.kineticcore.api.client.selector.EntitySelectorScreen;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.ColorPreviewButton;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.GridScrollController;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.NumericEditBox;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -35,7 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public final class KTModuleConfigScreen extends ScaledScreen {
+public final class KTModuleConfigScreen extends KineticScreen {
     private enum SaveOutcome {
         FAILED,
         UNCHANGED,
@@ -73,7 +72,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     private static final int ROW_HEIGHT = 27;
     private static final int LIST_HEIGHT = VISIBLE_ROWS * ROW_HEIGHT;
     private static final int SCROLL_X = 615;
-    private static final int SCROLL_WIDTH = 5;
+    private static final int SCROLL_WIDTH = 4;
 
     private final Screen parent;
     private final List<KTConfigPage> pages;
@@ -102,7 +101,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
                 .sorted(Comparator.comparingInt((KTConfigPage page) -> scopeOrder(page.scope()))
                         .thenComparing(KTConfigPage::id))
                 .toList();
-        configureResponsiveCanvas(640, 360, 6);
+        useCanvas(640, 360, 6);
         refreshFromSource();
         rebuildRows();
         for (KTConfigPage page : this.pages) {
@@ -149,7 +148,8 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     }
 
     @Override
-    protected void initScaled() {
+    protected void buildUi() {
+        resetScrollableWidgets();
         visibleRows.clear();
         rebuildRows();
         rowScroll.update(rows.size(), VISIBLE_ROWS);
@@ -171,11 +171,9 @@ public final class KTModuleConfigScreen extends ScaledScreen {
         });
         addRenderableWidget(searchBox);
 
-        int first = rowScroll.offset();
-        int last = Math.min(first + VISIBLE_ROWS, rows.size());
-        for (int index = first; index < last; index++) {
+        for (int index = 0; index < rows.size(); index++) {
             Row row = rows.get(index);
-            int y = ROW_TOP + (index - first) * ROW_HEIGHT;
+            int y = ROW_TOP + index * ROW_HEIGHT;
             visibleRows.put(row, y);
             if (row.kind() != RowKind.ENTRY || row.entry() == null) continue;
             if (row.entry().isValue()) {
@@ -201,6 +199,21 @@ public final class KTModuleConfigScreen extends ScaledScreen {
                         ignored -> saveAndClose())
                 .bounds(382, footerY, 92, 20)
                 .build());
+    }
+
+    private double rowPixelOffset() {
+        return rowScroll.smoothOffset() * ROW_HEIGHT;
+    }
+
+    private <T extends AbstractWidget> T addRowScrollableWidget(T widget) {
+        return addScrollableWidget(
+                widget,
+                28,
+                ROW_TOP,
+                SCROLL_X - 2,
+                ROW_TOP + LIST_HEIGHT,
+                this::rowPixelOffset
+        );
     }
 
     private static int compactEditorWidth(KTConfigEntry.Type type) {
@@ -342,7 +355,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
                         20,
                         currentColor,
                         Component.literal(formatColor(currentColor)),
-                        ignored -> ColorPickerApi.openColorPicker(
+                        ignored -> ColorPickerScreen.open(
                                 this,
                                 entry.label(),
                                 currentColor,
@@ -370,7 +383,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
             editor.setTooltip(Tooltip.create(entry.tooltip()));
         }
         editor.active = editable;
-        addRenderableWidget(editor);
+        addRowScrollableWidget(editor);
 
         Button reset = Button.builder(
                         Component.translatable("gui.kineticcore.config.reset"),
@@ -389,7 +402,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
                         ? Component.translatable("gui.kineticcore.config.reset.tooltip")
                         : KTConfigApi.unavailableReason(page)
         ));
-        addRenderableWidget(reset);
+        addRowScrollableWidget(reset);
     }
 
     private void addActionWidget(KTConfigPage page, KTConfigEntry<?> entry, int y) {
@@ -405,7 +418,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
         } else if (!editable) {
             button.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(page)));
         }
-        addRenderableWidget(button);
+        addRowScrollableWidget(button);
     }
 
     private void requestAction(KTConfigPage page, KTConfigEntry<?> entry) {
@@ -502,6 +515,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
         minecraft.setScreen(new KTConfigListScreen(
                 this,
                 entry.label(),
+                entry.tooltip(),
                 integerList,
                 values,
                 result -> {
@@ -649,13 +663,13 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     private boolean ensurePageEditable(KTConfigPage page) {
         if (KTConfigApi.canEdit(page)) return true;
         status = KTConfigApi.unavailableReason(page).copy().withStyle(ChatFormatting.RED);
-        GuiToastUtil.showToast("kineticcore_config_unavailable", status);
+        GuiOverlay.toast("kineticcore_config_unavailable", status);
         return false;
     }
 
     private void showSavedToast() {
         try {
-            GuiToastUtil.showToast(Component.translatable(
+            GuiOverlay.toast(Component.translatable(
                     "gui.kineticcore.config.module_saved",
                     title.copy().withStyle(ChatFormatting.GOLD)
             ));
@@ -680,79 +694,87 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     }
 
     @Override
-    protected void renderScaledBackground(
+    protected void renderCanvasBackground(
             @NotNull GuiGraphics graphics,
             int mouseX,
             int mouseY,
             float partialTick
     ) {
-        GuiRenderUtil.drawStandardPanel(graphics, 18, 12, 604, 342);
-        graphics.drawCenteredString(font, title, vWidth / 2, 24, 0xFFFFAA00);
+        GuiTheme.panel(graphics, 18, 12, 604, 342);
+        graphics.drawCenteredString(font, title, canvasWidth / 2, 24, 0xFFFFAA00);
 
         hoveredRow = null;
-        for (Map.Entry<Row, Integer> visible : visibleRows.entrySet()) {
-            Row row = visible.getKey();
-            int y = visible.getValue();
-            int tooltipWidth = row.kind() == RowKind.PAGE ? 578 : 292;
-            if (GuiRenderUtil.isHovering(mouseX, mouseY, 30, y - 3, tooltipWidth, 23)) {
-                hoveredRow = row;
-            }
+        double pixelOffset = rowPixelOffset();
+        enableCanvasScissor(graphics, 28, ROW_TOP, SCROLL_X - 2, ROW_TOP + LIST_HEIGHT);
+        try {
+            for (Map.Entry<Row, Integer> visible : visibleRows.entrySet()) {
+                Row row = visible.getKey();
+                int y = visible.getValue() - (int) Math.round(pixelOffset);
+                if (y + ROW_HEIGHT <= ROW_TOP || y >= ROW_TOP + LIST_HEIGHT) continue;
+                int tooltipWidth = row.kind() == RowKind.PAGE ? 578 : 292;
+                if (mouseY >= ROW_TOP && mouseY < ROW_TOP + LIST_HEIGHT
+                        && GuiTheme.hovering(mouseX, mouseY, 30, y - 3, tooltipWidth, 23)) {
+                    hoveredRow = row;
+                }
 
-            switch (row.kind()) {
-                case SCOPE -> {
-                    graphics.fill(30, y - 3, 612, y + 20, 0x66303030);
-                    graphics.drawString(font, row.text(), 38, y + 4, row.scope().displayColor(), false);
-                }
-                case PAGE -> {
-                    graphics.fill(34, y - 2, 608, y + 19, 0x44222222);
-                    String text = GuiRenderUtil.trimText(font, row.text().getString(), 540);
-                    graphics.drawString(font, text, 46, y + 4, 0xFFFFAA00, false);
-                    if (!KTConfigApi.canEdit(row.page())) {
-                        Component locked = Component.translatable("gui.kineticcore.config.server_locked");
-                        graphics.drawString(
-                                font,
-                                locked,
-                                600 - font.width(locked),
-                                y + 4,
-                                0xFFFF5555,
-                                false
-                        );
+                switch (row.kind()) {
+                    case SCOPE -> {
+                        graphics.fill(30, y - 3, 612, y + 20, 0x66303030);
+                        graphics.drawString(font, row.text(), 38, y + 4, row.scope().displayColor(), false);
                     }
-                }
-                case ENTRY -> {
-                    KTConfigEntry<?> entry = row.entry();
-                    String key = entryKey(row.page(), entry);
-                    if (entry.type() == KTConfigEntry.Type.SECTION) {
-                        graphics.fill(38, y - 3, 612, y + 20, 0x33222222);
-                        graphics.drawString(font, entry.label(), 46, y + 4, 0xFFFFCC55, false);
-                    } else if (entry.type() == KTConfigEntry.Type.DESCRIPTION) {
-                        String text = GuiRenderUtil.trimText(font, entry.label().getString(), 554);
-                        graphics.drawString(font, text, 46, y + 5, 0xFFAAAAAA, false);
-                    } else {
-                        int color;
+                    case PAGE -> {
+                        graphics.fill(34, y - 2, 608, y + 19, 0x44222222);
+                        String text = GuiTheme.trim(font, row.text().getString(), 540);
+                        graphics.drawString(font, text, 46, y + 4, 0xFFFFAA00, false);
                         if (!KTConfigApi.canEdit(row.page())) {
-                            color = 0xFF999999;
-                        } else {
-                            color = invalidEntries.contains(key) ? 0xFFFF5555 : 0xFFE0E0E0;
+                            Component locked = Component.translatable("gui.kineticcore.config.server_locked");
+                            graphics.drawString(
+                                    font,
+                                    locked,
+                                    600 - font.width(locked),
+                                    y + 4,
+                                    0xFFFF5555,
+                                    false
+                            );
                         }
-                        String text = GuiRenderUtil.trimText(font, entry.label().getString(), 282);
-                        graphics.drawString(font, text, 46, y + 6, color, false);
+                    }
+                    case ENTRY -> {
+                        KTConfigEntry<?> entry = row.entry();
+                        String key = entryKey(row.page(), entry);
+                        if (entry.type() == KTConfigEntry.Type.SECTION) {
+                            graphics.fill(38, y - 3, 612, y + 20, 0x33222222);
+                            graphics.drawString(font, entry.label(), 46, y + 4, 0xFFFFCC55, false);
+                        } else if (entry.type() == KTConfigEntry.Type.DESCRIPTION) {
+                            String text = GuiTheme.trim(font, entry.label().getString(), 554);
+                            graphics.drawString(font, text, 46, y + 5, 0xFFAAAAAA, false);
+                        } else {
+                            int color;
+                            if (!KTConfigApi.canEdit(row.page())) {
+                                color = 0xFF999999;
+                            } else {
+                                color = invalidEntries.contains(key) ? 0xFFFF5555 : 0xFFE0E0E0;
+                            }
+                            String text = GuiTheme.trim(font, entry.label().getString(), 282);
+                            graphics.drawString(font, text, 46, y + 6, color, false);
+                        }
                     }
                 }
             }
+        } finally {
+            graphics.disableScissor();
         }
 
         if (rows.isEmpty()) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable("gui.kineticcore.config.no_fields"),
-                    vWidth / 2,
+                    canvasWidth / 2,
                     176,
                     0xFFAAAAAA
             );
         }
 
-        ConfigScrollbarTheme.render(
+        GuiTheme.scrollbar(
                 rowScroll,
                 graphics,
                 mouseX,
@@ -768,7 +790,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
             graphics.drawCenteredString(
                     font,
                     status,
-                    vWidth / 2,
+                    canvasWidth / 2,
                     309,
                     invalidEntries.isEmpty() ? 0xFFFFFF55 : 0xFFFF5555
             );
@@ -776,7 +798,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
             graphics.drawCenteredString(
                     font,
                     Component.translatable("gui.kineticcore.config.module_scope_hint"),
-                    vWidth / 2,
+                    canvasWidth / 2,
                     309,
                     0xFFAAAAAA
             );
@@ -807,12 +829,12 @@ public final class KTModuleConfigScreen extends ScaledScreen {
         };
 
         if (tooltip != null) {
-            graphics.renderTooltip(font, font.split(tooltip, 400), mouseX, mouseY);
+            showTooltip(tooltip, 400);
         }
     }
 
     @Override
-    protected void renderScaledForeground(
+    protected void renderCanvasForeground(
             @NotNull GuiGraphics graphics,
             int mouseX,
             int mouseY,
@@ -838,7 +860,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean canvasMouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && rowScroll.beginDrag(
                 mouseX,
                 mouseY,
@@ -849,42 +871,38 @@ public final class KTModuleConfigScreen extends ScaledScreen {
                 18,
                 2
         )) {
-            rebuildWidgets();
             return true;
         }
-        return super.universalMouseClicked(mouseX, mouseY, button);
+        return super.canvasMouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseDragged(
+    protected boolean canvasMouseDragged(
             double mouseX,
             double mouseY,
             int button,
             double dragX,
             double dragY
     ) {
-        int previousOffset = rowScroll.offset();
         if (rowScroll.drag(mouseY, ROW_TOP, LIST_HEIGHT, 18)) {
-            if (rowScroll.offset() != previousOffset) rebuildWidgets();
             return true;
         }
-        return super.universalMouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.canvasMouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
-    protected boolean universalMouseReleased(double mouseX, double mouseY, int button) {
-        return rowScroll.release(button) || super.universalMouseReleased(mouseX, mouseY, button);
+    protected boolean canvasMouseReleased(double mouseX, double mouseY, int button) {
+        return rowScroll.release(button) || super.canvasMouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseScrolled(double mouseX, double mouseY, double delta) {
+    protected boolean canvasMouseScrolled(double mouseX, double mouseY, double delta) {
         if (mouseX >= 28 && mouseX <= 620
                 && mouseY >= ROW_TOP && mouseY < ROW_TOP + LIST_HEIGHT
                 && rowScroll.scroll(delta)) {
-            rebuildWidgets();
             return true;
         }
-        return super.universalMouseScrolled(mouseX, mouseY, delta);
+        return super.canvasMouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
@@ -1002,7 +1020,7 @@ public final class KTModuleConfigScreen extends ScaledScreen {
     private boolean matches(String raw, String query) {
         String lower = raw.toLowerCase(Locale.ROOT);
         if (lower.contains(query)) return true;
-        return PinyinUtil.match(raw, query);
+        return KineticSearch.match(raw, query);
     }
 
     private static int scopeOrder(KTConfigScope scope) {

@@ -2,18 +2,16 @@ package dev.xyat.kineticcore.config.client;
 
 import net.minecraft.ChatFormatting;
 import dev.xyat.kineticcore.KineticCore;
-import dev.xyat.kineticcore.api.client.GuiRenderUtil;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
-import dev.xyat.kineticcore.api.client.ItemListEditorScreen;
-import dev.xyat.kineticcore.api.client.PinyinUtil;
-import dev.xyat.kineticcore.api.client.ScaledScreen;
-import dev.xyat.kineticcore.api.client.color.ColorPickerApi;
-import dev.xyat.kineticcore.api.client.gui.ColorPreviewButton;
-import dev.xyat.kineticcore.api.client.gui.ConfigScrollbarTheme;
-import dev.xyat.kineticcore.api.client.gui.GridScrollController;
-import dev.xyat.kineticcore.api.client.gui.NumericEditBox;
-import dev.xyat.kineticcore.api.client.gui.SearchableListModel;
-import dev.xyat.kineticcore.api.client.entity.EntitySelectorScreen;
+import dev.xyat.kineticcore.api.client.theme.GuiTheme;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
+import dev.xyat.kineticcore.api.client.selector.ItemListEditorScreen;
+import dev.xyat.kineticcore.api.client.search.KineticSearch;
+import dev.xyat.kineticcore.api.client.screen.KineticScreen;
+import dev.xyat.kineticcore.api.client.selector.ColorPickerScreen;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.ColorPreviewButton;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.GridScrollController;
+import dev.xyat.kineticcore.api.client.widget.KineticWidgets.NumericEditBox;
+import dev.xyat.kineticcore.api.client.selector.EntitySelectorScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -36,11 +34,18 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Generic editor for one module-owned {@link KTConfigPage}. */
-public final class KTConfigScreen extends ScaledScreen {
+public final class KTConfigScreen extends KineticScreen {
     private enum SaveOutcome {
         FAILED,
         UNCHANGED,
         SAVED
+    }
+
+    private record DraftState(
+            Map<String, Object> values,
+            Map<String, String> rawValues,
+            Set<String> invalid
+    ) {
     }
 
     private static final int VISIBLE_ROWS = 8;
@@ -48,7 +53,7 @@ public final class KTConfigScreen extends ScaledScreen {
     private static final int ROW_HEIGHT = 27;
     private static final int LIST_HEIGHT = VISIBLE_ROWS * ROW_HEIGHT;
     private static final int SCROLL_X = 615;
-    private static final int SCROLL_WIDTH = 5;
+    private static final int SCROLL_WIDTH = 4;
 
     private final Screen parent;
     private final KTConfigPage configPage;
@@ -57,8 +62,8 @@ public final class KTConfigScreen extends ScaledScreen {
     private final Map<String, String> rawTextValues = new HashMap<>();
     private final Set<String> invalidEntries = new HashSet<>();
     private final Map<KTConfigEntry<?>, Integer> visibleRows = new HashMap<>();
-    private final SearchableListModel<KTConfigEntry<?>> entryModel =
-            new SearchableListModel<>(List.of(), KTConfigScreen::buildSearchData);
+    private final KineticSearch.Model<KTConfigEntry<?>> entryModel =
+            new KineticSearch.Model<>(List.of(), KTConfigScreen::buildSearchData);
     private final GridScrollController entryScroll = new GridScrollController();
     private Component status;
     private EditBox searchBox;
@@ -73,8 +78,9 @@ public final class KTConfigScreen extends ScaledScreen {
         this.configPage = configPage;
         this.showApplyTiming = configPage.showsApplyTiming();
         this.entryModel.setSource(configPage.entries());
-        configureResponsiveCanvas(640, 360, 6);
+        useCanvas(640, 360, 6);
         refreshFromSource();
+        configureDraft(this::captureDraftState, this::restoreDraftState);
         KTServerConfigClient.request(configPage);
     }
 
@@ -110,8 +116,35 @@ public final class KTConfigScreen extends ScaledScreen {
         }
     }
 
+    private DraftState captureDraftState() {
+        Map<String, Object> values = new HashMap<>();
+        for (KTConfigEntry<?> entry : configPage.entries()) {
+            if (!entry.isValue()) continue;
+            Object value = pendingValues.get(entry.id());
+            values.put(entry.id(), value == null ? null : entry.snapshot(value));
+        }
+        return new DraftState(values, new HashMap<>(rawTextValues), new HashSet<>(invalidEntries));
+    }
+
+    private void restoreDraftState(DraftState state) {
+        if (state == null) return;
+        pendingValues.clear();
+        for (KTConfigEntry<?> entry : configPage.entries()) {
+            if (!entry.isValue()) continue;
+            Object value = state.values().get(entry.id());
+            pendingValues.put(entry.id(), value == null ? null : entry.snapshot(value));
+        }
+        rawTextValues.clear();
+        rawTextValues.putAll(state.rawValues());
+        invalidEntries.clear();
+        invalidEntries.addAll(state.invalid());
+        status = null;
+        if (minecraft != null) rebuildWidgets();
+    }
+
     @Override
-    protected void initScaled() {
+    protected void buildUi() {
+        resetScrollableWidgets();
         visibleRows.clear();
         entryModel.refresh(searchQuery);
         entryScroll.update(entryModel.items().size(), VISIBLE_ROWS);
@@ -130,12 +163,9 @@ public final class KTConfigScreen extends ScaledScreen {
         addRenderableWidget(searchBox);
 
         List<KTConfigEntry<?>> entries = entryModel.items();
-        int first = entryScroll.offset();
-        int last = Math.min(first + VISIBLE_ROWS, entries.size());
-        for (int index = first; index < last; index++) {
+        for (int index = 0; index < entries.size(); index++) {
             KTConfigEntry<?> entry = entries.get(index);
-            int row = index - first;
-            int y = ROW_TOP + row * ROW_HEIGHT;
+            int y = ROW_TOP + index * ROW_HEIGHT;
             visibleRows.put(entry, y);
             if (entry.isValue()) {
                 addValueWidgets(entry, y);
@@ -160,6 +190,21 @@ public final class KTConfigScreen extends ScaledScreen {
         saveButton.active = editable;
         if (!editable) saveButton.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
         addRenderableWidget(saveButton);
+    }
+
+    private double entryPixelOffset() {
+        return entryScroll.smoothOffset() * ROW_HEIGHT;
+    }
+
+    private <T extends AbstractWidget> T addEntryScrollableWidget(T widget) {
+        return addScrollableWidget(
+                widget,
+                28,
+                ROW_TOP,
+                SCROLL_X - 2,
+                ROW_TOP + LIST_HEIGHT,
+                this::entryPixelOffset
+        );
     }
 
     private static int compactEditorWidth(KTConfigEntry.Type type) {
@@ -270,7 +315,7 @@ public final class KTConfigScreen extends ScaledScreen {
                         20,
                         currentColor,
                         Component.literal(formatColor(currentColor)),
-                        ignored -> ColorPickerApi.openColorPicker(
+                        ignored -> ColorPickerScreen.open(
                                 this,
                                 entry.label(),
                                 currentColor,
@@ -300,7 +345,7 @@ public final class KTConfigScreen extends ScaledScreen {
         } else if (!editable) {
             editor.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
         }
-        addRenderableWidget(editor);
+        addEntryScrollableWidget(editor);
         Button reset = Button.builder(Component.translatable("gui.kineticcore.config.reset"), ignored -> {
             pendingValues.put(entry.id(), entry.defaultSnapshot());
             invalidEntries.remove(entry.id());
@@ -314,7 +359,7 @@ public final class KTConfigScreen extends ScaledScreen {
                         ? Component.translatable("gui.kineticcore.config.reset.tooltip")
                         : KTConfigApi.unavailableReason(configPage)
         ));
-        addRenderableWidget(reset);
+        addEntryScrollableWidget(reset);
     }
 
     private void addActionWidget(KTConfigEntry<?> entry, int y) {
@@ -329,7 +374,7 @@ public final class KTConfigScreen extends ScaledScreen {
         } else if (!editable) {
             button.setTooltip(Tooltip.create(KTConfigApi.unavailableReason(configPage)));
         }
-        addRenderableWidget(button);
+        addEntryScrollableWidget(button);
     }
 
     private void requestAction(KTConfigEntry<?> entry) {
@@ -350,7 +395,7 @@ public final class KTConfigScreen extends ScaledScreen {
                     }
                 },
                 Component.translatable("gui.kineticcore.config.unsaved_action.title"),
-                unsavedMessage("gui.kineticcore.config.unsaved_action.message")
+                unsavedMessage()
         ));
     }
 
@@ -415,7 +460,7 @@ public final class KTConfigScreen extends ScaledScreen {
         }
         boolean integerList = entry.type() == KTConfigEntry.Type.INTEGER_LIST;
         minecraft.setScreen(new KTConfigListScreen(
-                this, entry.label(), integerList, values,
+                this, entry.label(), entry.tooltip(), integerList, values,
                 result -> {
                     pendingValues.put(entry.id(), new ArrayList<>(result));
                     invalidEntries.remove(entry.id());
@@ -470,6 +515,7 @@ public final class KTConfigScreen extends ScaledScreen {
         SaveOutcome outcome = persistPendingValues();
         if (outcome == SaveOutcome.FAILED) return;
         if (outcome == SaveOutcome.SAVED && configPage.scope() != KTConfigScope.SERVER_AUTHORITATIVE) showSavedToast();
+        commitDraft();
         Minecraft.getInstance().setScreen(parent);
     }
 
@@ -531,7 +577,7 @@ public final class KTConfigScreen extends ScaledScreen {
     private boolean ensurePageEditable() {
         if (KTConfigApi.canEdit(configPage)) return true;
         status = KTConfigApi.unavailableReason(configPage);
-        GuiToastUtil.showToast("kineticcore_config_unavailable", status);
+        GuiOverlay.toast("kineticcore_config_unavailable", status);
         return false;
     }
 
@@ -549,7 +595,7 @@ public final class KTConfigScreen extends ScaledScreen {
                             .copy()
                             .append(" — ")
                             .append(configPage.applyNotice());
-            GuiToastUtil.showToast(message);
+            GuiOverlay.toast(message);
         } catch (Throwable throwable) {
             KineticCore.LOGGER.debug("Could not show config saved toast", throwable);
         }
@@ -571,6 +617,7 @@ public final class KTConfigScreen extends ScaledScreen {
         if (!configPage.id().equals(pageId)) return;
         KTServerConfigClient.applyCached(configPage);
         refreshFromSource();
+        commitDraft();
         if (minecraft != null) rebuildWidgets();
     }
 
@@ -585,48 +632,56 @@ public final class KTConfigScreen extends ScaledScreen {
     }
 
     @Override
-    protected void renderScaledBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        GuiRenderUtil.drawStandardPanel(graphics, 18, 12, 604, 342);
-        graphics.drawCenteredString(font, title, vWidth / 2, 24, 0xFFFFAA00);
+    protected void renderCanvasBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        GuiTheme.panel(graphics, 18, 12, 604, 342);
+        graphics.drawCenteredString(font, title, canvasWidth / 2, 24, 0xFFFFAA00);
 
         hoveredEntry = null;
-        for (Map.Entry<KTConfigEntry<?>, Integer> row : visibleRows.entrySet()) {
-            KTConfigEntry<?> entry = row.getKey();
-            int y = row.getValue();
-            int tooltipWidth = entry.type() == KTConfigEntry.Type.DESCRIPTION ? 582 : 292;
-            if (GuiRenderUtil.isHovering(mouseX, mouseY, 30, y - 3, tooltipWidth, 23)) {
-                hoveredEntry = entry;
+        double pixelOffset = entryPixelOffset();
+        enableCanvasScissor(graphics, 28, ROW_TOP, SCROLL_X - 2, ROW_TOP + LIST_HEIGHT);
+        try {
+            for (Map.Entry<KTConfigEntry<?>, Integer> row : visibleRows.entrySet()) {
+                KTConfigEntry<?> entry = row.getKey();
+                int y = row.getValue() - (int) Math.round(pixelOffset);
+                if (y + ROW_HEIGHT <= ROW_TOP || y >= ROW_TOP + LIST_HEIGHT) continue;
+                int tooltipWidth = entry.type() == KTConfigEntry.Type.DESCRIPTION ? 582 : 292;
+                if (mouseY >= ROW_TOP && mouseY < ROW_TOP + LIST_HEIGHT
+                        && GuiTheme.hovering(mouseX, mouseY, 30, y - 3, tooltipWidth, 23)) {
+                    hoveredEntry = entry;
+                }
+                if (entry.type() == KTConfigEntry.Type.SECTION) {
+                    graphics.fill(30, y - 3, 612, y + 20, 0x55222222);
+                    graphics.drawString(font, entry.label(), 38, y + 4, 0xFFFFAA00, false);
+                } else if (entry.type() == KTConfigEntry.Type.DESCRIPTION) {
+                    String text = GuiTheme.trim(font, entry.label().getString(), 562);
+                    graphics.drawString(font, text, 38, y + 5, 0xFFAAAAAA, false);
+                } else {
+                    int color = invalidEntries.contains(entry.id()) ? 0xFFFF5555 : 0xFFE0E0E0;
+                    String text = GuiTheme.trim(font, entry.label().getString(), 282);
+                    graphics.drawString(font, text, 38, y + 6, color, false);
+                }
             }
-            if (entry.type() == KTConfigEntry.Type.SECTION) {
-                graphics.fill(30, y - 3, 612, y + 20, 0x55222222);
-                graphics.drawString(font, entry.label(), 38, y + 4, 0xFFFFAA00, false);
-            } else if (entry.type() == KTConfigEntry.Type.DESCRIPTION) {
-                String text = GuiRenderUtil.trimText(font, entry.label().getString(), 562);
-                graphics.drawString(font, text, 38, y + 5, 0xFFAAAAAA, false);
-            } else {
-                int color = invalidEntries.contains(entry.id()) ? 0xFFFF5555 : 0xFFE0E0E0;
-                String text = GuiRenderUtil.trimText(font, entry.label().getString(), 282);
-                graphics.drawString(font, text, 38, y + 6, color, false);
-            }
+        } finally {
+            graphics.disableScissor();
         }
 
         if (entryModel.items().isEmpty()) {
             graphics.drawCenteredString(
                     font,
                     Component.translatable("gui.kineticcore.config.no_fields"),
-                    vWidth / 2,
+                    canvasWidth / 2,
                     176,
                     0xFFAAAAAA
             );
         }
 
-        ConfigScrollbarTheme.render(
+        GuiTheme.scrollbar(
                 entryScroll, graphics, mouseX, mouseY,
                 SCROLL_X, ROW_TOP, SCROLL_WIDTH, LIST_HEIGHT, 18
         );
 
         if (status != null) {
-            graphics.drawCenteredString(font, status, vWidth / 2, 309,
+            graphics.drawCenteredString(font, status, canvasWidth / 2, 309,
                     invalidEntries.isEmpty() ? 0xFFFFFF55 : 0xFFFF5555);
         } else if (showApplyTiming) {
             List<FormattedCharSequence> timingLines = font.split(configPage.applyDetail(), 570);
@@ -636,7 +691,7 @@ public final class KTConfigScreen extends ScaledScreen {
                 graphics.drawCenteredString(
                         font,
                         timingLines.get(index),
-                        vWidth / 2,
+                        canvasWidth / 2,
                         firstY + index * 11,
                         configPage.applyTiming().displayColor()
                 );
@@ -657,12 +712,12 @@ public final class KTConfigScreen extends ScaledScreen {
                 ? hoveredEntry.label()
                 : hoveredEntry.tooltip();
         if (tooltip != null) {
-            graphics.renderTooltip(font, font.split(tooltip, 400), mouseX, mouseY);
+            showTooltip(tooltip, 400);
         }
     }
 
     @Override
-    protected void renderScaledForeground(
+    protected void renderCanvasForeground(
             @NotNull GuiGraphics graphics,
             int mouseX,
             int mouseY,
@@ -670,15 +725,13 @@ public final class KTConfigScreen extends ScaledScreen {
     ) {
         renderSearchPlaceholder(
                 graphics,
-                searchBox,
-                "gui.kineticcore.config.search_fields"
+                searchBox
         );
     }
 
     private void renderSearchPlaceholder(
             GuiGraphics graphics,
-            EditBox box,
-            String translationKey
+            EditBox box
     ) {
         if (box == null
                 || !box.visible
@@ -688,7 +741,7 @@ public final class KTConfigScreen extends ScaledScreen {
         }
 
         String text = font.plainSubstrByWidth(
-                Component.translatable(translationKey).getString(),
+                Component.translatable("gui.kineticcore.config.search_fields").getString(),
                 Math.max(0, box.getWidth() - 10)
         );
         graphics.drawString(
@@ -702,67 +755,43 @@ public final class KTConfigScreen extends ScaledScreen {
     }
 
     @Override
-    protected boolean universalMouseClicked(double mouseX, double mouseY, int button) {
+    protected boolean canvasMouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && entryScroll.beginDrag(
                 mouseX, mouseY, SCROLL_X, ROW_TOP, SCROLL_WIDTH, LIST_HEIGHT, 18, 2)) {
-            rebuildWidgets();
             return true;
         }
-        return super.universalMouseClicked(mouseX, mouseY, button);
+        return super.canvasMouseClicked(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseDragged(
+    protected boolean canvasMouseDragged(
             double mouseX, double mouseY, int button, double dragX, double dragY) {
-        int previousOffset = entryScroll.offset();
         if (entryScroll.drag(mouseY, ROW_TOP, LIST_HEIGHT, 18)) {
-            if (entryScroll.offset() != previousOffset) rebuildWidgets();
             return true;
         }
-        return super.universalMouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return super.canvasMouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
-    protected boolean universalMouseReleased(double mouseX, double mouseY, int button) {
+    protected boolean canvasMouseReleased(double mouseX, double mouseY, int button) {
         return entryScroll.release(button)
-                || super.universalMouseReleased(mouseX, mouseY, button);
+                || super.canvasMouseReleased(mouseX, mouseY, button);
     }
 
     @Override
-    protected boolean universalMouseScrolled(double mouseX, double mouseY, double delta) {
+    protected boolean canvasMouseScrolled(double mouseX, double mouseY, double delta) {
         if (mouseX >= 28 && mouseX <= 620
                 && mouseY >= ROW_TOP && mouseY < ROW_TOP + LIST_HEIGHT
                 && entryScroll.scroll(delta)) {
-            rebuildWidgets();
             return true;
         }
-        return super.universalMouseScrolled(mouseX, mouseY, delta);
+        return super.canvasMouseScrolled(mouseX, mouseY, delta);
     }
 
     @Override
     public void onClose() {
-        Minecraft client = Minecraft.getInstance();
-        if (!isDirty()) {
-            client.setScreen(parent);
-            return;
-        }
-
-        client.setScreen(new ConfirmScreen(
-                shouldSave -> {
-                    if (!shouldSave) {
-                        client.setScreen(parent);
-                        return;
-                    }
-
-                    client.setScreen(this);
-                    SaveOutcome outcome = persistPendingValues();
-                    if (outcome == SaveOutcome.FAILED) return;
-                    if (outcome == SaveOutcome.SAVED && configPage.scope() != KTConfigScope.SERVER_AUTHORITATIVE) showSavedToast();
-                    client.setScreen(parent);
-                },
-                Component.translatable("gui.kineticcore.config.unsaved_action.title"),
-                unsavedMessage("gui.kineticcore.config.unsaved_close.message")
-        ));
+        discardDraft();
+        Minecraft.getInstance().setScreen(parent);
     }
 
     @Override
@@ -776,11 +805,11 @@ public final class KTConfigScreen extends ScaledScreen {
                 .append(entry.label().getString());
         if (entry.tooltip() != null) data.append(' ').append(entry.tooltip().getString());
         String raw = data.toString();
-        return raw + ' ' + PinyinUtil.getSearchData(raw);
+        return raw + ' ' + KineticSearch.pinyin(raw);
     }
 
-    private Component unsavedMessage(String translationKey) {
-        return Component.translatable(translationKey)
+    private Component unsavedMessage() {
+        return Component.translatable("gui.kineticcore.config.unsaved_action.message")
                 .copy()
                 .append("\n")
                 .append(configPage.applyDetail());

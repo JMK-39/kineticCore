@@ -1,7 +1,7 @@
 package dev.xyat.kineticcore.feature.spawnegg.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import dev.xyat.kineticcore.api.client.GuiToastUtil;
+import dev.xyat.kineticcore.api.client.overlay.GuiOverlay;
 import dev.xyat.kineticcore.bootstrap.annotation.KTClientModule;
 import dev.xyat.kineticcore.feature.spawnegg.SpawnEggInit;
 import dev.xyat.kineticcore.feature.spawnegg.network.SpawnEggNetwork;
@@ -65,7 +65,7 @@ public final class SpawnEggClient {
 
             boolean disabled = !player.getPersistentData().getBoolean(MODE_KEY);
             player.getPersistentData().putBoolean(MODE_KEY, disabled);
-            GuiToastUtil.showToast(
+            GuiOverlay.toast(
                     TOAST_ID,
                     Component.translatable(disabled ? "tip.kineticcore.egg.vanilla" : "tip.kineticcore.egg.throw")
             );
