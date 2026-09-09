@@ -2,8 +2,10 @@ package dev.xyat.kineticcore.feature.tps.client;
 
 import net.minecraft.ChatFormatting;
 import dev.xyat.kineticcore.api.client.selector.HudPositionEditor;
+import dev.xyat.kineticcore.config.client.KTConfigApi;
 import dev.xyat.kineticcore.config.client.KTConfigScreen;
 import dev.xyat.kineticcore.feature.tps.config.TpsClientConfig;
+import dev.xyat.kineticcore.feature.tps.config.TpsConfigGui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -121,6 +123,7 @@ public final class TpsHudEditorScreen extends Screen {
 
     private void saveAndClose() {
         TpsClientConfig.setHudLayout(currentOffsetX(), currentOffsetY(), editor.getScale());
+        KTConfigApi.notifySaved(TpsConfigGui.PAGE_ID);
         if (parent instanceof KTConfigScreen configScreen) {
             configScreen.refreshFromSource();
         }

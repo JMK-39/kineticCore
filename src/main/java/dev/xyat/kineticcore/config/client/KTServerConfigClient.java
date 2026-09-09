@@ -168,15 +168,24 @@ public final class KTServerConfigClient {
         refreshOpenScreen(pageId);
 
         if (saveResponse) {
-            Component message = Component.translatable(
-                    messageKey == null || messageKey.isBlank()
-                            ? (success ? "gui.kineticcore.config.server.saved" : "gui.kineticcore.config.server.save_failed")
-                            : messageKey
-            );
-            GuiOverlay.toast(
-                    success ? "kineticcore_server_config_saved" : "kineticcore_server_config_save_failed",
-                    message
-            );
+            if (success) {
+                KTConfigPage page = KTConfigApi.find(pageId).orElse(null);
+                if (page != null) {
+                    KTConfigApi.notifySaved(page);
+                } else {
+                    GuiOverlay.toast(
+                            "kineticcore_server_config_saved:" + pageId,
+                            Component.translatable("gui.kineticcore.config.server.saved")
+                    );
+                }
+            } else {
+                Component message = Component.translatable(
+                        messageKey == null || messageKey.isBlank()
+                                ? "gui.kineticcore.config.server.save_failed"
+                                : messageKey
+                );
+                GuiOverlay.toast("kineticcore_server_config_save_failed:" + pageId, message);
+            }
         }
     }
 

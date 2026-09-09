@@ -89,6 +89,7 @@ public final class KTModuleConfigScreen extends KineticScreen {
     private Row hoveredRow;
     private String searchQuery = "";
     private boolean searchDirty;
+    private boolean lastSaveSentServerRequest;
 
     public KTModuleConfigScreen(
             Screen parent,
@@ -434,7 +435,7 @@ public final class KTModuleConfigScreen extends KineticScreen {
                     if (shouldSave) {
                         SaveOutcome outcome = persistPendingValues();
                         if (outcome == SaveOutcome.FAILED) return;
-                        if (outcome == SaveOutcome.SAVED) showSavedToast();
+                        if (shouldShowImmediateSavedToast(outcome)) showSavedToast();
                         runAction(page, entry);
                     }
                 },
@@ -576,11 +577,12 @@ public final class KTModuleConfigScreen extends KineticScreen {
     private void saveAndClose() {
         SaveOutcome outcome = persistPendingValues();
         if (outcome == SaveOutcome.FAILED) return;
-        if (outcome == SaveOutcome.SAVED) showSavedToast();
+        if (shouldShowImmediateSavedToast(outcome)) showSavedToast();
         Minecraft.getInstance().setScreen(parent);
     }
 
     private SaveOutcome persistPendingValues() {
+        lastSaveSentServerRequest = false;
         for (KTConfigPage page : pages) {
             for (KTConfigEntry<?> entry : page.entries()) {
                 if (!entry.isValue()) continue;
@@ -630,6 +632,7 @@ public final class KTModuleConfigScreen extends KineticScreen {
                     status = KTConfigApi.unavailableReason(page).copy().withStyle(ChatFormatting.RED);
                     return SaveOutcome.FAILED;
                 }
+                lastSaveSentServerRequest = true;
             } else {
                 List<KTConfigEntry<?>> applied = new ArrayList<>();
                 try {
@@ -667,12 +670,14 @@ public final class KTModuleConfigScreen extends KineticScreen {
         return false;
     }
 
+    private boolean shouldShowImmediateSavedToast(SaveOutcome outcome) {
+        return outcome == SaveOutcome.UNCHANGED
+                || (outcome == SaveOutcome.SAVED && !lastSaveSentServerRequest);
+    }
+
     private void showSavedToast() {
         try {
-            GuiOverlay.toast(Component.translatable(
-                    "gui.kineticcore.config.module_saved",
-                    title.copy().withStyle(ChatFormatting.GOLD)
-            ));
+            KTConfigApi.notifyModuleSaved(title);
         } catch (Throwable throwable) {
             KineticCore.LOGGER.debug("Could not show module config saved toast", throwable);
         }
@@ -922,7 +927,7 @@ public final class KTModuleConfigScreen extends KineticScreen {
                     client.setScreen(this);
                     SaveOutcome outcome = persistPendingValues();
                     if (outcome == SaveOutcome.FAILED) return;
-                    if (outcome == SaveOutcome.SAVED) showSavedToast();
+                    if (shouldShowImmediateSavedToast(outcome)) showSavedToast();
                     client.setScreen(parent);
                 },
                 Component.translatable("gui.kineticcore.config.unsaved_action.title"),

@@ -60,6 +60,34 @@ public final class KTConfigApi {
         return List.copyOf(PAGES.values());
     }
 
+    public static void notifySaved(String pageId) {
+        if (pageId == null || pageId.isBlank()) return;
+        find(pageId).ifPresent(KTConfigApi::notifySaved);
+    }
+
+    public static void notifySaved(KTConfigPage page) {
+        Objects.requireNonNull(page, "page");
+        Component message = page.applyNotice() == null
+                ? Component.translatable(
+                        page.applyTiming().savedTranslationKey(),
+                        page.title().copy()
+                )
+                : Component.translatable(
+                        "gui.kineticcore.config.saved.notice",
+                        page.title().copy(),
+                        page.applyNotice()
+                );
+        GuiOverlay.toast("kineticcore_config_saved:" + page.id(), message);
+    }
+
+    public static void notifyModuleSaved(Component moduleTitle) {
+        if (moduleTitle == null) return;
+        GuiOverlay.toast(
+                "kineticcore_config_module_saved",
+                Component.translatable("gui.kineticcore.config.module_saved", moduleTitle.copy())
+        );
+    }
+
     public static boolean canEdit(KTConfigPage page) {
         Objects.requireNonNull(page, "page");
         if (page.scope() != KTConfigScope.SERVER_AUTHORITATIVE) return true;

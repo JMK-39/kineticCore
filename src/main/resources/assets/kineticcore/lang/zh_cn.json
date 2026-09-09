@@ -746,5 +746,6 @@
   "gui.kineticcore.config.color_picker.tooltip": "§b点击打开高级 RGB 调色板。",
   "gui.kineticcore.config.move_up": "↑",
   "gui.kineticcore.config.move_down": "↓",
-  "gui.kineticcore.config.remove_short": "×"
+  "gui.kineticcore.config.remove_short": "×",
+  "gui.kineticcore.config.saved.notice": "§a已保存 %s §e— %s"
 }

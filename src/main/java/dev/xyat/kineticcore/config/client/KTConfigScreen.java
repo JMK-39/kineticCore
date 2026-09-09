@@ -390,7 +390,7 @@ public final class KTConfigScreen extends KineticScreen {
                     if (shouldSave) {
                         SaveOutcome outcome = persistPendingValues();
                         if (outcome == SaveOutcome.FAILED) return;
-                        if (outcome == SaveOutcome.SAVED && configPage.scope() != KTConfigScope.SERVER_AUTHORITATIVE) showSavedToast();
+                        if (shouldShowImmediateSavedToast(outcome)) showSavedToast();
                         runAction(entry);
                     }
                 },
@@ -514,7 +514,7 @@ public final class KTConfigScreen extends KineticScreen {
     private void saveAndClose() {
         SaveOutcome outcome = persistPendingValues();
         if (outcome == SaveOutcome.FAILED) return;
-        if (outcome == SaveOutcome.SAVED && configPage.scope() != KTConfigScope.SERVER_AUTHORITATIVE) showSavedToast();
+        if (shouldShowImmediateSavedToast(outcome)) showSavedToast();
         commitDraft();
         Minecraft.getInstance().setScreen(parent);
     }
@@ -581,21 +581,14 @@ public final class KTConfigScreen extends KineticScreen {
         return false;
     }
 
+    private boolean shouldShowImmediateSavedToast(SaveOutcome outcome) {
+        return outcome == SaveOutcome.UNCHANGED
+                || (outcome == SaveOutcome.SAVED && configPage.scope() != KTConfigScope.SERVER_AUTHORITATIVE);
+    }
+
     private void showSavedToast() {
         try {
-            Component message = configPage.applyNotice() == null
-                    ? Component.translatable(
-                            configPage.applyTiming().savedTranslationKey(),
-                            configPage.title().copy().withStyle(ChatFormatting.GOLD)
-                    )
-                    : Component.translatable(
-                            "gui.kineticcore.config.saved",
-                            configPage.title().copy().withStyle(ChatFormatting.GOLD)
-                    )
-                            .copy()
-                            .append(" — ")
-                            .append(configPage.applyNotice());
-            GuiOverlay.toast(message);
+            KTConfigApi.notifySaved(configPage);
         } catch (Throwable throwable) {
             KineticCore.LOGGER.debug("Could not show config saved toast", throwable);
         }
