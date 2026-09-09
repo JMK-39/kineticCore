@@ -1,5 +1,6 @@
 package dev.xyat.kineticcore.feature.setspawn.network;
 
+import dev.xyat.kineticcore.api.KTNetworkProtocol;
 import dev.xyat.kineticcore.KineticCore;
 import dev.xyat.kineticcore.bootstrap.annotation.KTNetwork;
 import dev.xyat.kineticcore.feature.setspawn.config.SetSpawnConfig;
@@ -32,8 +33,8 @@ public class SetSpawnNetwork {
         CHANNEL = NetworkRegistry.newSimpleChannel(
                 new ResourceLocation(KineticCore.MODID, "setspawn"),
                 () -> PROTOCOL_VERSION,
-                PROTOCOL_VERSION::equals,
-                PROTOCOL_VERSION::equals
+                KTNetworkProtocol::acceptsAnyVersion,
+                KTNetworkProtocol::acceptsAnyVersion
         );
 
         int id = 0;
