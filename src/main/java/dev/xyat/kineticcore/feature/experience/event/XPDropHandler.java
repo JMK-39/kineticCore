@@ -13,6 +13,7 @@ import net.minecraftforge.fml.common.Mod;
 
 @Mod.EventBusSubscriber(modid = KineticCore.MODID)
 public class XPDropHandler {
+    private static final String DEATH_RECOVERY_XP_TAG = "kineticcore:death_recovery_xp";
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onPlayerDeath(LivingDeathEvent event) {
@@ -38,7 +39,7 @@ public class XPDropHandler {
 
         if (dropAmount > 0) {
             // 5. 在世界中生成经验球
-            ExperienceOrb.award(level, player.position(), dropAmount);
+            awardDeathExperience(level, player, dropAmount);
 
             // 6. 关键修复：扣除玩家身上的经验
             // 直接调用 giveExperiencePoints(-dropAmount) 可能不会正确回退等级。
@@ -59,4 +60,23 @@ public class XPDropHandler {
                     player.getName().getString(), dropAmount, configPercentage, remainingXP);
         }
     }
+
+    private static void awardDeathExperience(ServerLevel level, Player player, int amount) {
+        int remaining = amount;
+        while (remaining > 0) {
+            int value = ExperienceOrb.getExperienceValue(remaining);
+            remaining -= value;
+
+            ExperienceOrb orb = new ExperienceOrb(
+                    level,
+                    player.getX(),
+                    player.getY(),
+                    player.getZ(),
+                    value
+            );
+            orb.getPersistentData().putBoolean(DEATH_RECOVERY_XP_TAG, true);
+            level.addFreshEntity(orb);
+        }
+    }
+
 }
