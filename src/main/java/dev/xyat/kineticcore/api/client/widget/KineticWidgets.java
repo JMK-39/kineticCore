@@ -463,12 +463,17 @@ public final class KineticWidgets {
 
     public abstract static class SmoothSelectionList<E extends ObjectSelectionList.Entry<E>>
             extends ObjectSelectionList<E> {
+        private static final int SCROLLBAR_WIDTH = 4;
+        private static final int VANILLA_SCROLLBAR_WIDTH = 6;
+
         private final Scroll.State smoothScrollState = new Scroll.State();
         private final int kineticListTop;
         private final int kineticListBottom;
         private final int kineticItemHeight;
         private double targetScrollAmount;
         private boolean smoothScrollInitialized;
+        private boolean scrollbarDragging;
+        private double scrollbarDragGrabOffset;
 
         protected SmoothSelectionList(
                 Minecraft minecraft,
@@ -507,6 +512,75 @@ public final class KineticWidgets {
             return targetScrollAmount;
         }
 
+        private int scrollbarX() {
+            return getScrollbarPosition() + Math.max(0, VANILLA_SCROLLBAR_WIDTH - SCROLLBAR_WIDTH);
+        }
+
+        private int scrollbarTrackHeight() {
+            return Math.max(1, kineticListBottom - kineticListTop);
+        }
+
+        private int scrollbarThumbHeight() {
+            int trackHeight = scrollbarTrackHeight();
+            int contentHeight = Math.max(trackHeight, getMaxPosition());
+            return Mth.clamp(
+                    (int) Math.round((double) trackHeight * trackHeight / contentHeight),
+                    Math.min(20, trackHeight),
+                    trackHeight
+            );
+        }
+
+        private boolean beginScrollbarDrag(double mouseX, double mouseY, int button) {
+            if (button != 0) return false;
+            double max = Math.max(0D, getMaxScroll());
+            if (max <= 0D) return false;
+
+            int barX = scrollbarX();
+            int trackHeight = scrollbarTrackHeight();
+            if (mouseX < barX || mouseX > barX + SCROLLBAR_WIDTH
+                    || mouseY < kineticListTop || mouseY > kineticListBottom) {
+                return false;
+            }
+
+            int thumbHeight = scrollbarThumbHeight();
+            double currentScroll = Mth.clamp(super.getScrollAmount(), 0D, max);
+            double travel = Math.max(0D, trackHeight - thumbHeight);
+            double thumbTop = kineticListTop + (travel <= 0D ? 0D : currentScroll / max * travel);
+
+            scrollbarDragging = true;
+            if (mouseY >= thumbTop && mouseY <= thumbTop + thumbHeight) {
+                scrollbarDragGrabOffset = mouseY - thumbTop;
+            } else {
+                scrollbarDragGrabOffset = thumbHeight / 2.0D;
+                applyScrollbarDrag(mouseY);
+            }
+            return true;
+        }
+
+        private void applyScrollbarDrag(double mouseY) {
+            double max = Math.max(0D, getMaxScroll());
+            int trackHeight = scrollbarTrackHeight();
+            int thumbHeight = scrollbarThumbHeight();
+            double travel = Math.max(0D, trackHeight - thumbHeight);
+            if (max <= 0D || travel <= 0D) {
+                snapScrollAmount(0D);
+                return;
+            }
+
+            double thumbTop = Mth.clamp(
+                    mouseY - kineticListTop - scrollbarDragGrabOffset,
+                    0D,
+                    travel
+            );
+            snapScrollAmount(thumbTop / travel * max);
+        }
+
+        private boolean dragScrollbar(double mouseY, int button) {
+            if (button != 0 || !scrollbarDragging) return false;
+            applyScrollbarDrag(mouseY);
+            return true;
+        }
+
         @Override
         public void render(
                 GuiGraphics graphics,
@@ -528,7 +602,8 @@ public final class KineticWidgets {
             super.setScrollAmount(
                     smoothScrollState.update(
                             targetScrollAmount,
-                            max
+                            max,
+                            scrollbarDragging
                     )
             );
             graphics.enableScissor(
@@ -549,39 +624,34 @@ public final class KineticWidgets {
             }
 
             if (max > 0D) {
-                int trackHeight = Math.max(1, kineticListBottom - kineticListTop);
-                int legacyScrollbarWidth = 4;
+                int trackHeight = scrollbarTrackHeight();
                 graphics.fill(
                         getScrollbarPosition(),
                         kineticListTop,
-                        getScrollbarPosition() + legacyScrollbarWidth,
+                        getScrollbarPosition() + VANILLA_SCROLLBAR_WIDTH,
                         kineticListBottom,
                         GuiTheme.current().background()
-                );
-                int contentHeight = Math.max(trackHeight, getMaxPosition());
-                int thumbHeight = Mth.clamp(
-                        (int) Math.round((double) trackHeight * trackHeight / contentHeight),
-                        Math.min(20, trackHeight),
-                        trackHeight
                 );
                 ScrollUtil.renderScrollbar(
                         graphics,
                         mouseX,
                         mouseY,
-                        getScrollbarPosition(),
+                        scrollbarX(),
                         kineticListTop,
-                        legacyScrollbarWidth,
+                        SCROLLBAR_WIDTH,
                         trackHeight,
-                        thumbHeight,
+                        scrollbarThumbHeight(),
                         (int) Math.ceil(max),
                         super.getScrollAmount(),
-                        false
+                        scrollbarDragging
                 );
             }
         }
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (beginScrollbarDrag(mouseX, mouseY, button)) return true;
+
             boolean handled = super.mouseClicked(mouseX, mouseY, button);
             if (handled && button == 0) {
                 double max = Math.max(0D, getMaxScroll());
@@ -619,6 +689,8 @@ public final class KineticWidgets {
                 double dragX,
                 double dragY
         ) {
+            if (dragScrollbar(mouseY, button)) return true;
+
             boolean handled = super.mouseDragged(
                     mouseX,
                     mouseY,
@@ -634,6 +706,16 @@ public final class KineticWidgets {
                 smoothScrollInitialized = true;
             }
             return handled;
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            if (button == 0 && scrollbarDragging) {
+                scrollbarDragging = false;
+                scrollbarDragGrabOffset = 0D;
+                return true;
+            }
+            return super.mouseReleased(mouseX, mouseY, button);
         }
     }
 

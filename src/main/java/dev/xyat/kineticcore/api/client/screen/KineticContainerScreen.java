@@ -227,6 +227,7 @@ public abstract class KineticContainerScreen<T extends AbstractContainerMenu> ex
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (overlays.keyPressed(keyCode)) return true;
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            commitDraft();
             onClose();
             return true;
         }
