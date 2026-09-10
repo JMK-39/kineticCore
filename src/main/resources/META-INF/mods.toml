@@ -5,8 +5,7 @@ license="${mod_license}"
 [[mods]]
 modId="${mod_id}"
 version="${file.jarVersion}"
-displayName="${mod_name}"
-logoFile="log.png"
+displayName="\u52A8\u529B\u6838\u5FC3"
 authors="${mod_authors}"
 description='''
 ${mod_description}
