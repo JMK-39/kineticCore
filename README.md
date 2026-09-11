@@ -47,10 +47,8 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 - Curios: optional integration
 - JEI: optional integration
 
-## Complete Functional Reference
-
-### Detailed Configuration Reference
-
+## Feature Reference
+### Config Details
 | Item | Description |
 |---|---|
 | **Automatically Scan Registered Attributes** | Adds new attributes, removes obsolete entries, and refreshes translated comments automatically. |
@@ -153,8 +151,7 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 | **Throw Inaccuracy** | Controls projectile spread. Lower values are more accurate. Default: 0.2. |
 | **Starting Equipment Editor** | Open item editor with item selector and NBT support |
 
-### GUI and Editor Reference
-
+### GUI and Editors
 | Item | Description |
 |---|---|
 | **Reset** | Restore this option's default value. |
@@ -174,8 +171,7 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 | **swatch** | #%s Left-click to load; right-click for color actions. |
 | **color picker** | Click to open the advanced RGB color picker. |
 
-### Command Function Reference
-
+### Commands
 | Item | Description |
 |---|---|
 | **pvp** | Toggle PVP Protection |
@@ -189,8 +185,7 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 | **hand** | Open the NBT editor for the item in your main hand. |
 | **entity** | Open the NBT editor for the entity or block entity under your crosshair. |
 
-### Editable Fields, Modes and Categories
-
+### Editable Options
 - Registered Attributes
 - Global Attribute Settings
 - Bee Fixes & Tweaks
@@ -224,8 +219,7 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 - All
 - Inventory
 
-### Configuration Keys and Defaults
-
+### Config Defaults
 | Key | Default |
 |---|---|
 | `anchor_x` | `2` |
@@ -266,8 +260,7 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 | `void_damage.percentage` | `10` |
 | `world_init.enable` | `true` |
 
-### Configuration and Data Paths
-
+### Data Paths
 Primary configuration/data paths:
 
 - `config/kineticcore/attributes.toml`
@@ -279,8 +272,7 @@ Primary configuration/data paths:
 - `config/kineticcore/spawnegg.toml`
 - `config/kineticcore/world_init.toml`
 
-### Dependencies and Optional Integrations
-
+### Dependencies
 | Mod ID | Relationship |
 |---|---|
 | `curios` | Optional |
