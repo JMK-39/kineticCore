@@ -225,12 +225,7 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('jar', Jar).configure {
-    def customOutputDir = project.findProperty('output_mods_dir')
-    if (customOutputDir) {
-        destinationDirectory = file(customOutputDir)
-    }
-
-    archiveFileName.set("${pModId}-${project.version}-slim.jar")
+    enabled = false
 
     manifest {
         attributes([
@@ -271,17 +266,6 @@ reobf {
 }
 
 assemble.dependsOn shadowJar
-
-tasks.named('assemble').configure {
-    doLast {
-        def slimJarFile = tasks.named('jar').get().archiveFile.get().asFile
-        if (slimJarFile.exists()) {
-            if (slimJarFile.delete()) {
-                println ">> Removed slim mod jar: ${slimJarFile.name}"
-            }
-        }
-    }
-}
 
 tasks.register('runClientIDE') {
     group = 'build'
