@@ -1,8 +1,296 @@
 # KineticCore
 
-[简体中文](#简体中文) | [English](#english)
+[English](#english) | [简体中文](#简体中文)
+
+## English
+
+**Project role:** KineticCore is the shared base API and infrastructure layer for the Kinetic ecosystem. It provides configuration, networking, synchronization, reusable GUI and editor tools, and module registration for other projects. Actual gameplay content is delivered by separate Kinetic add-on projects.
+
+Those add-ons cannot be safely merged into KineticCore or into one another. Each has its own feature scope, dependencies, configuration, release cycle, and user audience; keeping them separate enables optional installation and avoids forcing unrelated gameplay systems and dependencies into one package.
+
+### Overview
+
+**KineticCore** is the foundation of the Kinetic mod family. It provides the shared API layer, module bootstrap system, unified configuration center, networking, compressed payload utilities, reusable GUI components, and command extension framework. It also keeps a set of low-level gameplay tweaks and stability fixes that belong in the core.
+
+### Key Features
+
+- Unified `F6` configuration center for installed Kinetic modules.
+- Server-authoritative configuration API with permission checks and server-side persistence.
+- Shared networking and compressed payload utilities for large configuration data.
+- Reusable GUI, selector, virtual-canvas, HUD editor, and advanced RGB palette APIs.
+- `/kt` command extension framework for companion modules.
+- Flight, inertia and noclip control with client/server synchronization.
+- Manual crawling support.
+- TPS/MSPT/FPS monitoring and editable HUDs.
+- First-join rewards, equipment and command execution.
+- World initialization and spawn-management systems.
+- Per-attribute minimum/maximum range overrides.
+- General gameplay tweaks such as food, farmland, cobweb, creative and PVP rules.
+- NBT inspection and item-data copy utilities.
+- Resource-pack/datapack ordering helpers.
+- Compact status-effect HUD and night-vision flicker fixes.
+- Log cleanup, startup information, entity fixes, world-deletion protection and other low-level stability tools.
+
+### Configuration
+
+Most core configuration files are stored under:
+
+```text
+config/kineticcore/
+```
+
+Server gameplay rules are persisted by the server. Pure client preferences, such as HUD placement, remain local client settings.
+
+### Requirements
+
+- Java 17
+- Curios: optional integration
+- JEI: optional integration
+
+## Complete Functional Reference
+
+### Detailed Configuration Reference
+
+| Item | Description |
+|---|---|
+| **Automatically Scan Registered Attributes** | Adds new attributes, removes obsolete entries, and refreshes translated comments automatically. |
+| **Attribute Range Limits** | Configure enabled state and numeric bounds for every registered ranged attribute. |
+| **%s — Enabled** | Enable custom bounds for %s. |
+| **infinity** | This bound is extremely large, extremely small, or infinite. Scientific notation, Infinity, and -Infinity are supported. |
+| **%s — Maximum** | Maximum allowed value for %s. |
+| **%s — Minimum** | Minimum allowed value for %s. |
+| **Default Client Options** | Export the current Minecraft client options as KineticCore's defaults for a fresh options file. |
+| **Save Current Options as Defaults** | Overwrite config/kineticcore/defaultoptions.txt with the current options.txt. |
+| **FPS HUD** | Configure the client-only FPS overlay and open its visual position editor. |
+| **Show FPS HUD** | Whether to display the FPS HUD. |
+| **FPS HUD** | Client-side FPS HUD settings. |
+| **Horizontal Offset** | Horizontal position offset. Positive values move left; negative values move right. |
+| **Vertical Offset** | Vertical position offset. Positive values move up; negative values move down. |
+| **Open Visual Position Editor** | Drag the HUD to position it and use the mouse wheel to adjust its scale. |
+| **HUD Scale** | HUD scale; use the mouse wheel in the editor to adjust it. |
+| **Clear Inventory Before Grant** | Clear the player's inventory before granting the starter kit. |
+| **First-Join Commands** | Open the first-join command list. Adding or clicking an existing entry opens a dedicated editor with vanilla client command suggestions after typing /. |
+| **Grant Delay (Seconds)** | Seconds before granting rewards after login. 0 grants immediately; precision is 0.05 seconds. |
+| **Enable Starter Kit** | Enable first-join rewards for players who have not received them yet. |
+| **Starter Equipment** | Format: amountx namespace:item{NBT}; leave blank to give nothing in this slot. |
+| **Starter Items List** | Open the visual reward item editor to select items and edit NBT and counts. |
+| **Log Deduplication** | Collapse consecutive duplicate ERROR/FATAL logs into one entry with a repeat count. |
+| **Log Cleaner** | Only ERROR/FATAL logs are output; duplicate errors are collapsed and old logs are cleaned automatically. |
+| **Clean Old Logs on Exit** | Clean old logs and crash reports in the background when the game exits. |
+| **Filtered Log Keywords** | Hide matching log lines from both the console and log files. Separate multiple keywords with ASCII commas (,). |
+| **Crash Reports to Keep** | Maximum crash reports to retain; the minimum is 1. |
+| **Debug Logs to Keep** | Maximum archived debug logs to retain, excluding debug.log; the minimum is 1. |
+| **Archived Logs to Keep** | Maximum archived regular logs to retain, excluding latest.log; the minimum is 1. |
+| **Enable Gluttony Mode** | Allows players to eat even when the food bar is full. |
+| **Persistent Mob Whitelist** | Open the entity selector to choose mobs that should never be removed by this optimization. |
+| **Entity Attribute Fixer** | Fixes entities with NaN health (non-numeric values) caused by mod errors, preventing them from becoming unkillable 'Ghost' entities. |
+| **Farmland Protection** | Jumping won't trample farmland while wearing boots with Protection. |
+| **Fast Cobweb Breaking** | Allow axes and similar tools to break cobwebs quickly, like swords or shears. |
+| **Death XP Loss (%)** | Percentage of XP lost on death even with KeepInventory enabled (0 to disable). |
+| **Enable 'Let Me Despawn'** | Allows mobs that picked up items to despawn normally. This prevents server lag caused by mob accumulation. Mobs will drop picked items upon despawning. |
+| **Remove Recipe Book** | Completely removes recipe book and advancements to optimize performance. |
+| **Enhanced PVP Protection** | When enabled, players with PVP protection (and their pets/minions) cannot hurt others or be hurt by other players. It also prevents pets from targeting protected parties and automatically clears aggro. |
+| **World Recycle Bin** | When enabled, deleting a world will move it to the system recycle bin instead of permanently deleting it. |
+| **Void Damage Percentage** | Set the percentage of max health deducted per void damage tick.<br>Range: 0 - 100<br>Will deal a minimum of 4 damage. |
+| **Vanilla Void Damage Whitelist** | Entities in this list will keep the vanilla void damage rate.<br>Supported formats:<br>@modid (Exclude entire mod)<br>#namespace:tag (Exclude specific tag)<br>namespace:entity_id (Exclude specific entity) |
+| **Creative Void Immunity** | Prevents death from falling into the void or /kill in Creative mode. |
+| **Compact Status Effects** | Configure the compact status-effect display on this client. |
+| **Hold Tab to Expand Effects** | Require holding TAB to show expanded effects. |
+| **Display Effects on the Left** | Display effects on the left side of the inventory. |
+| **Use Potion Items as Compact Icons** | Use potion items instead of effect textures in compact mode. |
+| **Compact Status Effects** | Client display settings for compact status effects. |
+| **RangedAttributeAccessor** | Attribute Range Uncapping: Allows configured min/max limits to be applied to RangedAttribute instances. |
+| **BeeMixins** | Server-side Bee Tweaks: Removes gravity effect, fixes pathfinding float drift, fixes spawn position offset (MC-206401), prevents bees from destroying turtle eggs, and scales physical hitbox and eye height to 25%. |
+| **BeeRendererMixin** | Client-side Bee Renderer Tweaks: Forces flip degrees to 180.0F for bees, and reduced the volume to 25% of the original. |
+| **ClientInterfaceMixins** | Client interface and workflow automation enhancements:<br># 1. Narrator Removal: Prevents native narrator library loading and disables all TTS features/hotkeys to avoid accidental triggers and potential lag.<br># 2. UI Cleanup: Removes Forge mod compatibility icons from the multiplayer screen for a cleaner visual experience.<br># 3. Smart Toast Interception: Replaces intrusive 'Unsecure Server' system toasts with a non-intrusive gold-colored chat message alert.<br># 4. Seamless World Loading: Automatically skips 'Experimental Settings' and 'Datapack' confirmation screens; forces world lifecycle to 'stable' to suppress warnings.<br># 5. UI Redirect Prevention: Blocks the automated transition to the 'Create New World' screen triggered by version mismatch, missing saves, or datapack errors, allowing players to remain on the current menu for manual adjustment. |
+| **AbstractContainerScreenAccessor** | Copy-item container accessor: lets Alt+C / Alt+F accurately read the hovered slot in vanilla and modded container screens. |
+| **PlayerCrawlPoseMixin** | Allows players to actively trigger crawling state. |
+| **ServerLevelMixin** | Disables damage indicator particles to improve combat performance. |
+| **DefaultOptionsMixins** | Default options loader: applies config/kineticcore/defaultoptions.txt when options.txt is first created or damaged, including custom default key bindings. |
+| **MobDespawnMixins** | Mob Despawning Optimizations (Let Me Despawn):<br># 1. Entity Backlog Prevention: Fixes the vanilla issue where mobs (Zombies, Skeletons, etc.) become persistent after picking up items, reducing long-term server lag.<br># 2. Endermen Tweak: Allows Endermen holding blocks to despawn naturally like other mobs, preventing entity buildup.<br># 3. Item Recovery: When a mob despawns via this logic, any picked-up equipment is dropped back onto the ground, preventing gear loss.<br># 4. Smart Persistence: Only intercepts automatic persistence from item pickups; mobs named with Name Tags or spawned manually remain persistent. |
+| **MiniEffectsMixins** | Status Effect HUD Overhaul (Mini Effects):<br># 1. Smart Layout: Breaks vanilla squeeze limits. Cards now use up to 90% of vertical space, distributed evenly.<br># 2. Hover-to-Top: Hovering over any card instantly brings it to the top layer, breaking through vanilla rendering occlusion.<br># 3. Compatibility: Fully dodges JEI areas and fixes out-of-bounds left-side rendering.<br># 4. Night Vision Anti-Flicker: Overrides GameRenderer night-vision brightness calculation and removes the vanilla sine flicker near effect expiration. |
+| **FlightClientMixins** | Client Movement & Physics:<br># 1. Inertia Suppression: Instantly stops movement when input is released for precise building.<br># 2. Noclip Physics: Overrides local player physics for smooth client-side noclip.<br># 3. Dynamic Speed: Adjust creative flight speed (0.1x-100x) with Alt+Shift+Scroll.<br># 4. Anti-Jitter: Fixes the visual falling glitch during gamemode swaps. |
+| **FlightServerMixins** | Server Flight Core:<br># 1. Flight Guardian: Prevents accidental flight loss from mod conflicts or network jitter.<br># 2. State Inheritance: Retains flight status across dimensions, respawn, or gamemode swaps.<br># 3. Check Interception: Bypasses server-side movement 'rubber-banding' during No-Clip.<br># 4. Speed Limit Removal: Disables vanilla server-side walking/elytra/vehicle speed checks.<br># 5. Dimensions Hack: Modifies hitboxes and eye-height during No-Clip. |
+| **RenderTargetMixin** | GPU Memory Leak Fix:<br># 1. Intercepts the garbage collection of RenderTargets.<br># 2. Catches OpenGL texture and framebuffer IDs that were abandoned without being properly deleted.<br># 3. Queues them for safe deletion on the main thread, preventing VRAM leaks over long play sessions. |
+| **NetworkLimitMixins** | Network Packet & Protocol Uncapping:<br># 1. Break Hardcoded Limits: Completely overrides vanilla Netty restrictions on NBT, Strings, Chunk data, and Payload packets.<br># 2. Heavy Modpack Support: Resolves "Payload may not be larger than..." or "VarInt too big" disconnect errors caused by network overflow.<br># 3. Dynamic Scaling: Works with the global network limit config to provide secure and highly elastic network throughput. |
+| **RecipeBookClientMixins** | Recipe Book Client Removal: Prevents client recipe collection setup and removes the vanilla recipe-book button. |
+| **RecipeBookServerMixins** | Recipe Book Server Removal: Stops recipe-book save/load/sync/award operations and filters recipes/ advancements. |
+| **ServerMixin** | TPS/MSPT Sampling: Records server tick times for /kt tps reports and the TPS HUD. |
+| **WorldManagementMixins** | World Management: Includes recycle bin and navigation logic. |
+| **Chunk Packet Size** | Max byte limit for reading chunk packet data.<br>Vanilla default: 2097152 (2MB)<br>Range: 2097152 ~ 2147483647 |
+| **Decoder Max Size** | Maximum processing limit for the network packet decoder (decompression).<br>Vanilla default: 8388608 (8MB)<br>Range: 8388608 ~ 2147483647 |
+| **NBT Max Size** | Max allowed bytes for reading NBT data structure trees.<br>Vanilla default: 2097152 (2MB)<br>Range: 2097152 ~ 4194304 (4MB) |
+| **Max Packet Size** | Max payload limit for Custom Payload/Query packets.<br>Vanilla default: 1048576 (1MB)<br>Range: 1048576 ~ 33554432 (32MB) |
+| **String Max Size** | Max character length limit for strings transmitted over the network.<br>Vanilla default: 32767<br>Range: 32767 ~ 2147483647 |
+| **Connection Timeout** | Network connection timeout (in seconds).<br>Vanilla default: 30<br>Range: 30 ~ 99999 |
+| **VarInt Byte Limit** | Maximum byte length of a VarInt variable.<br>Vanilla default: 5<br>Range: 5 ~ 10 |
+| **VarInt21 Decoder Limit** | Max length limit for the 21-bit VarInt Frame Decoder.<br>Vanilla default: 3<br>Range: 3 ~ 16 |
+| **VarLong Byte Limit** | Maximum byte length of a VarLong variable.<br>Vanilla default: 10<br>Range: 10 ~ 20 |
+| **Overlay X Position** | The left X coordinate of the information overlay. |
+| **Overlay Y Position** | The top Y coordinate of the information overlay. |
+| **Startup Information** | Configure the startup-time and account information shown on this client. |
+| **Show Login Information** | Whether to show the current login account information. |
+| **Show Startup Time** | Whether to show the game startup time. |
+| **TPS/MSPT HUD** | Configure the client TPS/MSPT overlay and whether this connection subscribes to server samples. |
+| **Show TPS/MSPT HUD** | Whether to show the TPS/MSPT HUD. Disabling it also stops server samples. |
+| **TPS/MSPT HUD** | Client-side TPS/MSPT HUD settings. |
+| **Init Commands List** | Each list entry or each line is executed as one independent command. A failed command will not stop later commands. Online admins will be notified. Do not add /. If added, it will be removed automatically. Lines starting with # are skipped. |
+| **Enable Init Logic** | Whether to execute initialization logic on first world load. |
+| **Data Pack Priority** | Priority rule: Entries higher in the list have higher priority; when content conflicts, the upper data pack wins.<br>Controls: Hold Ctrl + left mouse to pick up and drag a whole row. The row follows the pointer while the other rows make room in real time; release to drop it. ↑ / ↓ also work. |
+| **Resource Pack Priority** | Override rule: Entries higher in the list have higher priority; when content conflicts, a resource pack above overrides the packs below it.<br>Controls: Hold Ctrl + left mouse to pick up and drag a whole row like an icon. Other rows make room in real time; release to drop it. ↑ / ↓ also work. |
+| **Biome Search Step** | Sampling step for biome search (Suggested: 32-64).<br>Smaller values are more accurate but slower, larger values are faster. |
+| **Custom Spawn** | Configure base parameters for new-world spawn searching. Use the dedicated rule editor below for dimension, biome, and structure lists instead of editing the config file manually. |
+| **Enable Custom Spawn** | Enable custom world-spawn searching. This does not override personal spawn points set by beds or similar mechanics. |
+| **Max Search Radius** | Maximum biome-mode search radius in blocks. Must be a non-negative integer; larger ranges increase worst-case search time. |
+| **Spawn Rules** | Rule priority is dimension, then biome, then structure. Complex lists use a dedicated selector and are validated against server registries. |
+| **Open Spawn Rule Editor** | Choose allowed dimensions, biomes, and structures and control each rule toggle. minecraft:overworld cannot be stored in the dimension restriction list; the server rejects invalid or missing IDs. |
+| **Structure Search Radius (Chunks)** | Maximum structure search radius in chunks; 1 chunk = 16 blocks. Very large values (such as > 512) may severely stall world creation; End outer-island structures generally require more than 64. |
+| **Structure Search Timeout Seconds** | When creating a new world, if spawn structure search takes longer than this value, it falls back to biome/dimension logic. If that still fails, vanilla default spawn is used. Recommended: 8-20 seconds. |
+| **Attribute Editor** | Open the full attribute list to edit enabled state, minimum, and maximum values. |
+| **Throwable Spawn Eggs** | Throw spawn eggs like snowballs and spawn the matching entity at a safe impact position. Hitting a spawner changes its entity type directly. |
+| **Enable Spawn Egg Throwing** | Allows right-clicking to throw spawn eggs as projectiles. Use Alt+O to switch between throw mode and vanilla mode. |
+| **Throw Velocity** | Controls spawn egg projectile speed. Default: 1.5. |
+| **Throw Inaccuracy** | Controls projectile spread. Lower values are more accurate. Default: 0.2. |
+| **Starting Equipment Editor** | Open item editor with item selector and NBT support |
+
+### GUI and Editor Reference
+
+| Item | Description |
+|---|---|
+| **Reset** | Restore this option's default value. |
+| **search** | Search... (@mod #tag) |
+| **command edit** | Type / to use the client command tree. Tab, arrow keys, and mouse selection are supported. |
+| **Starting Equipment Editor** | Left-click to select an item, right-click to open the NBT editor, middle-click to clear the slot |
+| **Reward Item Editor** | Left-click the icon to select an item; right-click the icon to open the NBT editor. |
+| **Cancel** | Discard the current color changes. |
+| **Apply** | Apply the current color or palette. |
+| **HEX** | Enter a 6-digit RGB hex value, for example FF00FF. |
+| **rgb** | Enter an RGB value from 0 to 255. |
+| **Copy HEX** | Copy the current color as #RRGGBB. |
+| **Add to Palette** | Add the exact current color to the palette. |
+| **RGB Picker** | Hold left click and drag to choose saturation and brightness. |
+| **hue** | Hold left click and drag to choose hue. |
+| **Current Color** | Current color: #%s |
+| **swatch** | #%s Left-click to load; right-click for color actions. |
+| **color picker** | Click to open the advanced RGB color picker. |
+
+### Command Function Reference
+
+| Item | Description |
+|---|---|
+| **pvp** | Toggle PVP Protection |
+| **reload** | Reload mod config files |
+| **setfirstjoin** | Save current inventory and equipment as first join rewards |
+| **tps** | View server TPS and MSPT status |
+| **world** | World & Structure command help |
+| **list structures** | List all structure IDs |
+| **structure** | Query structures at current location |
+| **nbt** | NBT Editor |
+| **hand** | Open the NBT editor for the item in your main hand. |
+| **entity** | Open the NBT editor for the entity or block entity under your crosshair. |
+
+### Editable Fields, Modes and Categories
+
+- Registered Attributes
+- Global Attribute Settings
+- Bee Fixes & Tweaks
+- Client UI & Interaction
+- Flight & Movement Control
+- Mod Compatibility
+- Network Protocol
+- Optimization & Entity Tweaks
+- Performance & Rendering Fixes
+- Performance Monitoring
+- Player & Entity Logic
+- Vanilla System Tweaks
+- World Management
+- Stored only in this client's configuration.
+- Client Settings
+- Client
+- Stored in this Minecraft installation; it does not modify a connected remote server.
+- Local installation
+- Server Settings
+- Server
+- Blocks
+- Combat
+- Food & Drinks
+- Ingredients
+- Mods
+- Redstone
+- Spawn Eggs
+- Tools
+- Apply
+- %s
+- All
+- Inventory
+
+### Configuration Keys and Defaults
+
+| Key | Default |
+|---|---|
+| `anchor_x` | `2` |
+| `anchor_y` | `2` |
+| `creative.enableVoidImmunity` | `true` |
+| `death.keep_inventory_drop_xp_percentage` | `50` |
+| `enabled` | `true` |
+| `first_join.clear_inventory` | `true` |
+| `first_join.delay_ticks` | `20` |
+| `first_join.enable` | `true` |
+| `log_cleaner.deduplication` | `true` |
+| `log_cleaner.enable` | `true` |
+| `log_cleaner.filtered_keywords` | `"Tried to load a block entity for block"` |
+| `log_cleaner.max_crash_reports` | `3` |
+| `log_cleaner.max_debug_logs` | `3` |
+| `log_cleaner.max_logs` | `3` |
+| `mechanics.enableAlwaysEdible` | `true` |
+| `mechanics.enableEntityAttributeFixer` | `true` |
+| `mechanics.enableFarmlandProtection` | `true` |
+| `mechanics.enablePvpProtection` | `true` |
+| `mechanics.fastCobWebBreaking` | `true` |
+| `mechanics.recycleBinWorlds` | `true` |
+| `mobs.enableLetMeDespawn` | `true` |
+| `offsetX` | `0` |
+| `offsetY` | `0` |
+| `recipe_book.removeRecipeBook` | `true` |
+| `scale` | `1.0D` |
+| `setspawn.biome_step` | `48` |
+| `setspawn.enable` | `true` |
+| `setspawn.radius` | `10000` |
+| `setspawn.rule_biome.enable` | `false` |
+| `setspawn.rule_dimension.enable` | `false` |
+| `setspawn.rule_structure.enable` | `true` |
+| `setspawn.structure_radius` | `256` |
+| `setspawn.structure_timeout_seconds` | `12` |
+| `show_login_info` | `true` |
+| `show_startup_time` | `true` |
+| `void_damage.percentage` | `10` |
+| `world_init.enable` | `true` |
+
+### Configuration and Data Paths
+
+Primary configuration/data paths:
+
+- `config/kineticcore/attributes.toml`
+- `config/kineticcore/defaultoptions.txt`
+- `config/kineticcore/general.toml`
+- `config/kineticcore/network.toml`
+- `config/kineticcore/player.toml`
+- `config/kineticcore/setspawn.toml`
+- `config/kineticcore/spawnegg.toml`
+- `config/kineticcore/world_init.toml`
+
+### Dependencies and Optional Integrations
+
+| Mod ID | Relationship |
+|---|---|
+| `curios` | Optional |
+| `jei` | Optional |
 
 ## 简体中文
+
+**项目定位：** KineticCore 是 Kinetic 系列共用的基础 API 与底层设施，负责向其他项目提供配置、网络同步、通用界面、编辑器和模块注册能力。实际玩法内容由各个独立的 Kinetic 附属项目提供。
+
+这些附属不能简单合并进 KineticCore 或彼此合并。每个附属都有独立的功能范围、依赖、配置、更新周期和适用玩家；保持独立可以让玩家按需安装，也能避免无关玩法和依赖被强制捆绑。
 
 ### 模组定位
 
@@ -306,283 +594,3 @@ config/kineticcore/
 |---|---|
 | `curios` | 可选 |
 | `jei` | 可选 |
-
-## English
-
-### Overview
-
-**KineticCore** is the foundation of the Kinetic mod family. It provides the shared API layer, module bootstrap system, unified configuration center, networking, compressed payload utilities, reusable GUI components, and command extension framework. It also keeps a set of low-level gameplay tweaks and stability fixes that belong in the core.
-
-### Key Features
-
-- Unified `F6` configuration center for installed Kinetic modules.
-- Server-authoritative configuration API with permission checks and server-side persistence.
-- Shared networking and compressed payload utilities for large configuration data.
-- Reusable GUI, selector, virtual-canvas, HUD editor, and advanced RGB palette APIs.
-- `/kt` command extension framework for companion modules.
-- Flight, inertia and noclip control with client/server synchronization.
-- Manual crawling support.
-- TPS/MSPT/FPS monitoring and editable HUDs.
-- First-join rewards, equipment and command execution.
-- World initialization and spawn-management systems.
-- Per-attribute minimum/maximum range overrides.
-- General gameplay tweaks such as food, farmland, cobweb, creative and PVP rules.
-- NBT inspection and item-data copy utilities.
-- Resource-pack/datapack ordering helpers.
-- Compact status-effect HUD and night-vision flicker fixes.
-- Log cleanup, startup information, entity fixes, world-deletion protection and other low-level stability tools.
-
-### Configuration
-
-Most core configuration files are stored under:
-
-```text
-config/kineticcore/
-```
-
-Server gameplay rules are persisted by the server. Pure client preferences, such as HUD placement, remain local client settings.
-
-### Requirements
-
-- Java 17
-- Curios: optional integration
-- JEI: optional integration
-
-## Complete Functional Reference
-
-### Detailed Configuration Reference
-
-| Item | Description |
-|---|---|
-| **Automatically Scan Registered Attributes** | Adds new attributes, removes obsolete entries, and refreshes translated comments automatically. |
-| **Attribute Range Limits** | Configure enabled state and numeric bounds for every registered ranged attribute. |
-| **%s — Enabled** | Enable custom bounds for %s. |
-| **infinity** | This bound is extremely large, extremely small, or infinite. Scientific notation, Infinity, and -Infinity are supported. |
-| **%s — Maximum** | Maximum allowed value for %s. |
-| **%s — Minimum** | Minimum allowed value for %s. |
-| **Default Client Options** | Export the current Minecraft client options as KineticCore's defaults for a fresh options file. |
-| **Save Current Options as Defaults** | Overwrite config/kineticcore/defaultoptions.txt with the current options.txt. |
-| **FPS HUD** | Configure the client-only FPS overlay and open its visual position editor. |
-| **Show FPS HUD** | Whether to display the FPS HUD. |
-| **FPS HUD** | Client-side FPS HUD settings. |
-| **Horizontal Offset** | Horizontal position offset. Positive values move left; negative values move right. |
-| **Vertical Offset** | Vertical position offset. Positive values move up; negative values move down. |
-| **Open Visual Position Editor** | Drag the HUD to position it and use the mouse wheel to adjust its scale. |
-| **HUD Scale** | HUD scale; use the mouse wheel in the editor to adjust it. |
-| **Clear Inventory Before Grant** | Clear the player's inventory before granting the starter kit. |
-| **First-Join Commands** | Open the first-join command list. Adding or clicking an existing entry opens a dedicated editor with vanilla client command suggestions after typing /. |
-| **Grant Delay (Seconds)** | Seconds before granting rewards after login. 0 grants immediately; precision is 0.05 seconds. |
-| **Enable Starter Kit** | Enable first-join rewards for players who have not received them yet. |
-| **Starter Equipment** | Format: amountx namespace:item{NBT}; leave blank to give nothing in this slot. |
-| **Starter Items List** | Open the visual reward item editor to select items and edit NBT and counts. |
-| **Log Deduplication** | Collapse consecutive duplicate ERROR/FATAL logs into one entry with a repeat count. |
-| **Log Cleaner** | Only ERROR/FATAL logs are output; duplicate errors are collapsed and old logs are cleaned automatically. |
-| **Clean Old Logs on Exit** | Clean old logs and crash reports in the background when the game exits. |
-| **Filtered Log Keywords** | Hide matching log lines from both the console and log files. Separate multiple keywords with ASCII commas (,). |
-| **Crash Reports to Keep** | Maximum crash reports to retain; the minimum is 1. |
-| **Debug Logs to Keep** | Maximum archived debug logs to retain, excluding debug.log; the minimum is 1. |
-| **Archived Logs to Keep** | Maximum archived regular logs to retain, excluding latest.log; the minimum is 1. |
-| **Enable Gluttony Mode** | Allows players to eat even when the food bar is full. |
-| **Persistent Mob Whitelist** | Open the entity selector to choose mobs that should never be removed by this optimization. |
-| **Entity Attribute Fixer** | Fixes entities with NaN health (non-numeric values) caused by mod errors, preventing them from becoming unkillable 'Ghost' entities. |
-| **Farmland Protection** | Jumping won't trample farmland while wearing boots with Protection. |
-| **Fast Cobweb Breaking** | Allow axes and similar tools to break cobwebs quickly, like swords or shears. |
-| **Death XP Loss (%)** | Percentage of XP lost on death even with KeepInventory enabled (0 to disable). |
-| **Enable 'Let Me Despawn'** | Allows mobs that picked up items to despawn normally. This prevents server lag caused by mob accumulation. Mobs will drop picked items upon despawning. |
-| **Remove Recipe Book** | Completely removes recipe book and advancements to optimize performance. |
-| **Enhanced PVP Protection** | When enabled, players with PVP protection (and their pets/minions) cannot hurt others or be hurt by other players. It also prevents pets from targeting protected parties and automatically clears aggro. |
-| **World Recycle Bin** | When enabled, deleting a world will move it to the system recycle bin instead of permanently deleting it. |
-| **Void Damage Percentage** | Set the percentage of max health deducted per void damage tick.<br>Range: 0 - 100<br>Will deal a minimum of 4 damage. |
-| **Vanilla Void Damage Whitelist** | Entities in this list will keep the vanilla void damage rate.<br>Supported formats:<br>@modid (Exclude entire mod)<br>#namespace:tag (Exclude specific tag)<br>namespace:entity_id (Exclude specific entity) |
-| **Creative Void Immunity** | Prevents death from falling into the void or /kill in Creative mode. |
-| **Compact Status Effects** | Configure the compact status-effect display on this client. |
-| **Hold Tab to Expand Effects** | Require holding TAB to show expanded effects. |
-| **Display Effects on the Left** | Display effects on the left side of the inventory. |
-| **Use Potion Items as Compact Icons** | Use potion items instead of effect textures in compact mode. |
-| **Compact Status Effects** | Client display settings for compact status effects. |
-| **RangedAttributeAccessor** | Attribute Range Uncapping: Allows configured min/max limits to be applied to RangedAttribute instances. |
-| **BeeMixins** | Server-side Bee Tweaks: Removes gravity effect, fixes pathfinding float drift, fixes spawn position offset (MC-206401), prevents bees from destroying turtle eggs, and scales physical hitbox and eye height to 25%. |
-| **BeeRendererMixin** | Client-side Bee Renderer Tweaks: Forces flip degrees to 180.0F for bees, and reduced the volume to 25% of the original. |
-| **ClientInterfaceMixins** | Client interface and workflow automation enhancements:<br># 1. Narrator Removal: Prevents native narrator library loading and disables all TTS features/hotkeys to avoid accidental triggers and potential lag.<br># 2. UI Cleanup: Removes Forge mod compatibility icons from the multiplayer screen for a cleaner visual experience.<br># 3. Smart Toast Interception: Replaces intrusive 'Unsecure Server' system toasts with a non-intrusive gold-colored chat message alert.<br># 4. Seamless World Loading: Automatically skips 'Experimental Settings' and 'Datapack' confirmation screens; forces world lifecycle to 'stable' to suppress warnings.<br># 5. UI Redirect Prevention: Blocks the automated transition to the 'Create New World' screen triggered by version mismatch, missing saves, or datapack errors, allowing players to remain on the current menu for manual adjustment. |
-| **AbstractContainerScreenAccessor** | Copy-item container accessor: lets Alt+C / Alt+F accurately read the hovered slot in vanilla and modded container screens. |
-| **PlayerCrawlPoseMixin** | Allows players to actively trigger crawling state. |
-| **ServerLevelMixin** | Disables damage indicator particles to improve combat performance. |
-| **DefaultOptionsMixins** | Default options loader: applies config/kineticcore/defaultoptions.txt when options.txt is first created or damaged, including custom default key bindings. |
-| **MobDespawnMixins** | Mob Despawning Optimizations (Let Me Despawn):<br># 1. Entity Backlog Prevention: Fixes the vanilla issue where mobs (Zombies, Skeletons, etc.) become persistent after picking up items, reducing long-term server lag.<br># 2. Endermen Tweak: Allows Endermen holding blocks to despawn naturally like other mobs, preventing entity buildup.<br># 3. Item Recovery: When a mob despawns via this logic, any picked-up equipment is dropped back onto the ground, preventing gear loss.<br># 4. Smart Persistence: Only intercepts automatic persistence from item pickups; mobs named with Name Tags or spawned manually remain persistent. |
-| **MiniEffectsMixins** | Status Effect HUD Overhaul (Mini Effects):<br># 1. Smart Layout: Breaks vanilla squeeze limits. Cards now use up to 90% of vertical space, distributed evenly.<br># 2. Hover-to-Top: Hovering over any card instantly brings it to the top layer, breaking through vanilla rendering occlusion.<br># 3. Compatibility: Fully dodges JEI areas and fixes out-of-bounds left-side rendering.<br># 4. Night Vision Anti-Flicker: Overrides GameRenderer night-vision brightness calculation and removes the vanilla sine flicker near effect expiration. |
-| **FlightClientMixins** | Client Movement & Physics:<br># 1. Inertia Suppression: Instantly stops movement when input is released for precise building.<br># 2. Noclip Physics: Overrides local player physics for smooth client-side noclip.<br># 3. Dynamic Speed: Adjust creative flight speed (0.1x-100x) with Alt+Shift+Scroll.<br># 4. Anti-Jitter: Fixes the visual falling glitch during gamemode swaps. |
-| **FlightServerMixins** | Server Flight Core:<br># 1. Flight Guardian: Prevents accidental flight loss from mod conflicts or network jitter.<br># 2. State Inheritance: Retains flight status across dimensions, respawn, or gamemode swaps.<br># 3. Check Interception: Bypasses server-side movement 'rubber-banding' during No-Clip.<br># 4. Speed Limit Removal: Disables vanilla server-side walking/elytra/vehicle speed checks.<br># 5. Dimensions Hack: Modifies hitboxes and eye-height during No-Clip. |
-| **RenderTargetMixin** | GPU Memory Leak Fix:<br># 1. Intercepts the garbage collection of RenderTargets.<br># 2. Catches OpenGL texture and framebuffer IDs that were abandoned without being properly deleted.<br># 3. Queues them for safe deletion on the main thread, preventing VRAM leaks over long play sessions. |
-| **NetworkLimitMixins** | Network Packet & Protocol Uncapping:<br># 1. Break Hardcoded Limits: Completely overrides vanilla Netty restrictions on NBT, Strings, Chunk data, and Payload packets.<br># 2. Heavy Modpack Support: Resolves "Payload may not be larger than..." or "VarInt too big" disconnect errors caused by network overflow.<br># 3. Dynamic Scaling: Works with the global network limit config to provide secure and highly elastic network throughput. |
-| **RecipeBookClientMixins** | Recipe Book Client Removal: Prevents client recipe collection setup and removes the vanilla recipe-book button. |
-| **RecipeBookServerMixins** | Recipe Book Server Removal: Stops recipe-book save/load/sync/award operations and filters recipes/ advancements. |
-| **ServerMixin** | TPS/MSPT Sampling: Records server tick times for /kt tps reports and the TPS HUD. |
-| **WorldManagementMixins** | World Management: Includes recycle bin and navigation logic. |
-| **Chunk Packet Size** | Max byte limit for reading chunk packet data.<br>Vanilla default: 2097152 (2MB)<br>Range: 2097152 ~ 2147483647 |
-| **Decoder Max Size** | Maximum processing limit for the network packet decoder (decompression).<br>Vanilla default: 8388608 (8MB)<br>Range: 8388608 ~ 2147483647 |
-| **NBT Max Size** | Max allowed bytes for reading NBT data structure trees.<br>Vanilla default: 2097152 (2MB)<br>Range: 2097152 ~ 4194304 (4MB) |
-| **Max Packet Size** | Max payload limit for Custom Payload/Query packets.<br>Vanilla default: 1048576 (1MB)<br>Range: 1048576 ~ 33554432 (32MB) |
-| **String Max Size** | Max character length limit for strings transmitted over the network.<br>Vanilla default: 32767<br>Range: 32767 ~ 2147483647 |
-| **Connection Timeout** | Network connection timeout (in seconds).<br>Vanilla default: 30<br>Range: 30 ~ 99999 |
-| **VarInt Byte Limit** | Maximum byte length of a VarInt variable.<br>Vanilla default: 5<br>Range: 5 ~ 10 |
-| **VarInt21 Decoder Limit** | Max length limit for the 21-bit VarInt Frame Decoder.<br>Vanilla default: 3<br>Range: 3 ~ 16 |
-| **VarLong Byte Limit** | Maximum byte length of a VarLong variable.<br>Vanilla default: 10<br>Range: 10 ~ 20 |
-| **Overlay X Position** | The left X coordinate of the information overlay. |
-| **Overlay Y Position** | The top Y coordinate of the information overlay. |
-| **Startup Information** | Configure the startup-time and account information shown on this client. |
-| **Show Login Information** | Whether to show the current login account information. |
-| **Show Startup Time** | Whether to show the game startup time. |
-| **TPS/MSPT HUD** | Configure the client TPS/MSPT overlay and whether this connection subscribes to server samples. |
-| **Show TPS/MSPT HUD** | Whether to show the TPS/MSPT HUD. Disabling it also stops server samples. |
-| **TPS/MSPT HUD** | Client-side TPS/MSPT HUD settings. |
-| **Init Commands List** | Each list entry or each line is executed as one independent command. A failed command will not stop later commands. Online admins will be notified. Do not add /. If added, it will be removed automatically. Lines starting with # are skipped. |
-| **Enable Init Logic** | Whether to execute initialization logic on first world load. |
-| **Data Pack Priority** | Priority rule: Entries higher in the list have higher priority; when content conflicts, the upper data pack wins.<br>Controls: Hold Ctrl + left mouse to pick up and drag a whole row. The row follows the pointer while the other rows make room in real time; release to drop it. ↑ / ↓ also work. |
-| **Resource Pack Priority** | Override rule: Entries higher in the list have higher priority; when content conflicts, a resource pack above overrides the packs below it.<br>Controls: Hold Ctrl + left mouse to pick up and drag a whole row like an icon. Other rows make room in real time; release to drop it. ↑ / ↓ also work. |
-| **Biome Search Step** | Sampling step for biome search (Suggested: 32-64).<br>Smaller values are more accurate but slower, larger values are faster. |
-| **Custom Spawn** | Configure base parameters for new-world spawn searching. Use the dedicated rule editor below for dimension, biome, and structure lists instead of editing the config file manually. |
-| **Enable Custom Spawn** | Enable custom world-spawn searching. This does not override personal spawn points set by beds or similar mechanics. |
-| **Max Search Radius** | Maximum biome-mode search radius in blocks. Must be a non-negative integer; larger ranges increase worst-case search time. |
-| **Spawn Rules** | Rule priority is dimension, then biome, then structure. Complex lists use a dedicated selector and are validated against server registries. |
-| **Open Spawn Rule Editor** | Choose allowed dimensions, biomes, and structures and control each rule toggle. minecraft:overworld cannot be stored in the dimension restriction list; the server rejects invalid or missing IDs. |
-| **Structure Search Radius (Chunks)** | Maximum structure search radius in chunks; 1 chunk = 16 blocks. Very large values (such as > 512) may severely stall world creation; End outer-island structures generally require more than 64. |
-| **Structure Search Timeout Seconds** | When creating a new world, if spawn structure search takes longer than this value, it falls back to biome/dimension logic. If that still fails, vanilla default spawn is used. Recommended: 8-20 seconds. |
-| **Attribute Editor** | Open the full attribute list to edit enabled state, minimum, and maximum values. |
-| **Throwable Spawn Eggs** | Throw spawn eggs like snowballs and spawn the matching entity at a safe impact position. Hitting a spawner changes its entity type directly. |
-| **Enable Spawn Egg Throwing** | Allows right-clicking to throw spawn eggs as projectiles. Use Alt+O to switch between throw mode and vanilla mode. |
-| **Throw Velocity** | Controls spawn egg projectile speed. Default: 1.5. |
-| **Throw Inaccuracy** | Controls projectile spread. Lower values are more accurate. Default: 0.2. |
-| **Starting Equipment Editor** | Open item editor with item selector and NBT support |
-
-### GUI and Editor Reference
-
-| Item | Description |
-|---|---|
-| **Reset** | Restore this option's default value. |
-| **search** | Search... (@mod #tag) |
-| **command edit** | Type / to use the client command tree. Tab, arrow keys, and mouse selection are supported. |
-| **Starting Equipment Editor** | Left-click to select an item, right-click to open the NBT editor, middle-click to clear the slot |
-| **Reward Item Editor** | Left-click the icon to select an item; right-click the icon to open the NBT editor. |
-| **Cancel** | Discard the current color changes. |
-| **Apply** | Apply the current color or palette. |
-| **HEX** | Enter a 6-digit RGB hex value, for example FF00FF. |
-| **rgb** | Enter an RGB value from 0 to 255. |
-| **Copy HEX** | Copy the current color as #RRGGBB. |
-| **Add to Palette** | Add the exact current color to the palette. |
-| **RGB Picker** | Hold left click and drag to choose saturation and brightness. |
-| **hue** | Hold left click and drag to choose hue. |
-| **Current Color** | Current color: #%s |
-| **swatch** | #%s Left-click to load; right-click for color actions. |
-| **color picker** | Click to open the advanced RGB color picker. |
-
-### Command Function Reference
-
-| Item | Description |
-|---|---|
-| **pvp** | Toggle PVP Protection |
-| **reload** | Reload mod config files |
-| **setfirstjoin** | Save current inventory and equipment as first join rewards |
-| **tps** | View server TPS and MSPT status |
-| **world** | World & Structure command help |
-| **list structures** | List all structure IDs |
-| **structure** | Query structures at current location |
-| **nbt** | NBT Editor |
-| **hand** | Open the NBT editor for the item in your main hand. |
-| **entity** | Open the NBT editor for the entity or block entity under your crosshair. |
-
-### Editable Fields, Modes and Categories
-
-- Registered Attributes
-- Global Attribute Settings
-- Bee Fixes & Tweaks
-- Client UI & Interaction
-- Flight & Movement Control
-- Mod Compatibility
-- Network Protocol
-- Optimization & Entity Tweaks
-- Performance & Rendering Fixes
-- Performance Monitoring
-- Player & Entity Logic
-- Vanilla System Tweaks
-- World Management
-- Stored only in this client's configuration.
-- Client Settings
-- Client
-- Stored in this Minecraft installation; it does not modify a connected remote server.
-- Local installation
-- Server Settings
-- Server
-- Blocks
-- Combat
-- Food & Drinks
-- Ingredients
-- Mods
-- Redstone
-- Spawn Eggs
-- Tools
-- Apply
-- %s
-- All
-- Inventory
-
-### Configuration Keys and Defaults
-
-| Key | Default |
-|---|---|
-| `anchor_x` | `2` |
-| `anchor_y` | `2` |
-| `creative.enableVoidImmunity` | `true` |
-| `death.keep_inventory_drop_xp_percentage` | `50` |
-| `enabled` | `true` |
-| `first_join.clear_inventory` | `true` |
-| `first_join.delay_ticks` | `20` |
-| `first_join.enable` | `true` |
-| `log_cleaner.deduplication` | `true` |
-| `log_cleaner.enable` | `true` |
-| `log_cleaner.filtered_keywords` | `"Tried to load a block entity for block"` |
-| `log_cleaner.max_crash_reports` | `3` |
-| `log_cleaner.max_debug_logs` | `3` |
-| `log_cleaner.max_logs` | `3` |
-| `mechanics.enableAlwaysEdible` | `true` |
-| `mechanics.enableEntityAttributeFixer` | `true` |
-| `mechanics.enableFarmlandProtection` | `true` |
-| `mechanics.enablePvpProtection` | `true` |
-| `mechanics.fastCobWebBreaking` | `true` |
-| `mechanics.recycleBinWorlds` | `true` |
-| `mobs.enableLetMeDespawn` | `true` |
-| `offsetX` | `0` |
-| `offsetY` | `0` |
-| `recipe_book.removeRecipeBook` | `true` |
-| `scale` | `1.0D` |
-| `setspawn.biome_step` | `48` |
-| `setspawn.enable` | `true` |
-| `setspawn.radius` | `10000` |
-| `setspawn.rule_biome.enable` | `false` |
-| `setspawn.rule_dimension.enable` | `false` |
-| `setspawn.rule_structure.enable` | `true` |
-| `setspawn.structure_radius` | `256` |
-| `setspawn.structure_timeout_seconds` | `12` |
-| `show_login_info` | `true` |
-| `show_startup_time` | `true` |
-| `void_damage.percentage` | `10` |
-| `world_init.enable` | `true` |
-
-### Configuration and Data Paths
-
-Primary configuration/data paths:
-
-- `config/kineticcore/attributes.toml`
-- `config/kineticcore/defaultoptions.txt`
-- `config/kineticcore/general.toml`
-- `config/kineticcore/network.toml`
-- `config/kineticcore/player.toml`
-- `config/kineticcore/setspawn.toml`
-- `config/kineticcore/spawnegg.toml`
-- `config/kineticcore/world_init.toml`
-
-### Dependencies and Optional Integrations
-
-| Mod ID | Relationship |
-|---|---|
-| `curios` | Optional |
-| `jei` | Optional |
