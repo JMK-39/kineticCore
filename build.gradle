@@ -225,7 +225,8 @@ tasks.named('processResources', ProcessResources).configure {
 }
 
 tasks.named('jar', Jar).configure {
-    enabled = false
+    destinationDirectory.set(layout.buildDirectory.dir('tmp/kineticcore-internal'))
+    archiveFileName.set("${pModId}-${project.version}-internal.jar")
 
     manifest {
         attributes([
@@ -266,6 +267,12 @@ reobf {
 }
 
 assemble.dependsOn shadowJar
+
+tasks.named('assemble').configure {
+    doLast {
+        delete(tasks.named('jar').get().archiveFile.get().asFile)
+    }
+}
 
 tasks.register('runClientIDE') {
     group = 'build'
