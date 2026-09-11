@@ -63,8 +63,6 @@ config/kineticcore/
 
 ### 运行环境
 
-- Minecraft 1.20.1
-- Minecraft Forge 47.x
 - Java 17
 - Curios：可选兼容
 - JEI：可选兼容
@@ -304,12 +302,10 @@ config/kineticcore/
 
 ### 依赖与可选兼容
 
-| 模组 ID | 要求 | 版本范围 | 侧别 |
-|---|---|---|---|
-| `forge` | 必须 | `${forge_version_range}` | `BOTH` |
-| `minecraft` | 必须 | `${minecraft_version_range}` | `BOTH` |
-| `curios` | 可选 | `[0,)` | `CLIENT` |
-| `jei` | 可选 | `[0,)` | `CLIENT` |
+| 模组 ID | 关系 |
+|---|---|
+| `curios` | 可选 |
+| `jei` | 可选 |
 
 ## English
 
@@ -348,8 +344,6 @@ Server gameplay rules are persisted by the server. Pure client preferences, such
 
 ### Requirements
 
-- Minecraft 1.20.1
-- Minecraft Forge 47.x
 - Java 17
 - Curios: optional integration
 - JEI: optional integration
@@ -588,17 +582,7 @@ Primary configuration/data paths:
 
 ### Dependencies and Optional Integrations
 
-| Mod ID | Requirement | Version range | Side |
-|---|---|---|---|
-| `forge` | Required | `${forge_version_range}` | `BOTH` |
-| `minecraft` | Required | `${minecraft_version_range}` | `BOTH` |
-| `curios` | Optional | `[0,)` | `CLIENT` |
-| `jei` | Optional | `[0,)` | `CLIENT` |
-
-## 开源协议与版权 (License)
-
-Copyright (C) 2024-2026 XYAT.
-
-本项目基于 **GNU Lesser General Public License v3.0 (LGPLv3)** 协议开源。
-
-This project is open-sourced under the **GNU Lesser General Public License v3.0 (LGPLv3)**.
+| Mod ID | Relationship |
+|---|---|
+| `curios` | Optional |
+| `jei` | Optional |
