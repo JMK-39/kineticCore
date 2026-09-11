@@ -230,7 +230,7 @@ tasks.named('jar', Jar).configure {
         destinationDirectory = file(customOutputDir)
     }
 
-    archiveFileName.set("${pModId}-slim.jar")
+    archiveFileName.set("${pModId}-${project.version}-slim.jar")
 
     manifest {
         attributes([
@@ -252,7 +252,7 @@ shadowJar {
         destinationDirectory = file(customOutputDir)
     }
 
-    archiveFileName.set("${pModId}.jar")
+    archiveFileName.set("${pModId}-${project.version}.jar")
 
     configurations = [project.configurations.embed]
 
