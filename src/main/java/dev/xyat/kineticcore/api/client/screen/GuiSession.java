@@ -147,8 +147,13 @@ public final class GuiSession {
 
     public static boolean isKineticScreen(Screen screen) {
         if (screen == null) return false;
+        if (screen instanceof KineticScreen
+                || screen instanceof KineticContainerScreen<?>
+                || screen instanceof KineticNativeScreen) {
+            return true;
+        }
         String name = screen.getClass().getName();
-        return name.startsWith("dev.xyat.kinetic");
+        return name.startsWith("dev.xyat.");
     }
 
     public static final class DraftSession {

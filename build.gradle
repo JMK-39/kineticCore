@@ -290,3 +290,5 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs.addAll(['-nowarn', '-Xlint:none', '-Amixin.target.allowUnresolvedTarget=true', '-Amixin.suppressTargetWarnings=true'])
 }
+
+apply from: 'gradle/github-release.gradle'
