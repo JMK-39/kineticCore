@@ -41,9 +41,9 @@ config/kineticcore/
 
 Server gameplay rules are persisted by the server. Pure client preferences, such as HUD placement, remain local client settings.
 
-### Requirements
+### Dependencies
 
-- Java 17
+- Forge 47.4.0+
 - Curios: optional integration
 - JEI: optional integration
 
@@ -341,9 +341,9 @@ config/kineticcore/
 - `spawnegg.toml`：可投掷刷怪蛋。
 - `startup.toml`：启动与登录显示。
 
-### 运行环境
+### 依赖
 
-- Java 17
+- Forge 47.4.0+
 - Curios：可选兼容
 - JEI：可选兼容
 
